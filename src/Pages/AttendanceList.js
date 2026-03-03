@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { filterActiveRecords } from "../utils/employeeStatus";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const BASE_URL = "http://localhost:5000";
 
@@ -10,25 +12,51 @@ export default function AttendanceList() {
   const [error, setError] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [clientInfo, setClientInfo] = useState(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId') || '';
+  const navigate = useNavigate();
+
   useEffect(() => {
+    if (!clientId) {
+      setError("Client ID not found. Please login again.");
+      setLoading(false);
+      return;
+    }
+
     const fetchAllAttendance = async () => {
       try {
-        // Fetch employees first to check their status
-        const empRes = await fetch("http://localhost:5000/api/employees/get-employees");
+        // Fetch employees first with clientId
+        const empRes = await fetch(`${BASE_URL}/api/employees/get-employees/${clientId}`);
         const employees = empRes.ok ? await empRes.json() : [];
 
-        const res = await fetch(`${BASE_URL}/api/attendance/allattendance`);
+        // Fetch client info
+        const clientData = JSON.parse(localStorage.getItem('clientData') || '{}');
+        setClientInfo(clientData);
+
+        // Fetch attendance with clientId in params
+        const res = await fetch(`${BASE_URL}/api/attendance/allattendance/${clientId}`);
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.message || "Failed to fetch attendance");
 
+        // Handle different response structures
+        let attendanceRecords = [];
+        if (Array.isArray(data)) {
+          attendanceRecords = data;
+        } else if (data.records && Array.isArray(data.records)) {
+          attendanceRecords = data.records;
+        } else if (data.data && Array.isArray(data.data)) {
+          attendanceRecords = data.data;
+        }
+
         // Sort by checkInTime descending (newest first)
-        const sortedRecords = (data.records || []).sort((a, b) =>
+        const sortedRecords = attendanceRecords.sort((a, b) =>
           new Date(b.checkInTime) - new Date(a.checkInTime)
         );
 
@@ -45,7 +73,7 @@ export default function AttendanceList() {
     };
 
     fetchAllAttendance();
-  }, []);
+  }, [clientId]);
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -146,7 +174,7 @@ export default function AttendanceList() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `attendance_records_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    a.download = `attendance_records_${clientId}_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -169,6 +197,23 @@ export default function AttendanceList() {
       year: 'numeric'
     });
   };
+
+  if (!clientId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-md p-8 text-center bg-white border border-red-200 shadow-lg rounded-2xl">
+          <div className="mb-4 text-4xl text-red-500">🔒</div>
+          <p className="mb-4 text-lg font-semibold text-red-600">Client ID not found!</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="px-6 py-2 font-semibold text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -202,31 +247,36 @@ export default function AttendanceList() {
     <div className="min-h-screen px-4 py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="mx-auto max-w-9xl">
 
+        {/* Client Info Banner */}
+        {clientInfo && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 bg-white border border-blue-200 rounded-lg shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <span className="text-blue-700 font-bold text-xs">ID</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-700">Client: {clientInfo.name || 'N/A'}</p>
+                  <p className="text-[10px] text-gray-500">ID: {clientId.substring(0, 8)}...</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                  Company: {clientInfo.companyName || 'N/A'}
+                </span>
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                  Location: {clientInfo.location || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Stats Cards */}
-        {/* <div className="grid grid-cols-1 gap-4 mb-8 md:grid-cols-4">
-          <div className="p-6 text-center bg-white border border-blue-200 shadow-lg rounded-2xl">
-            <div className="text-3xl font-bold text-blue-600">{records.length}</div>
-            <div className="font-semibold text-blue-800">Total Records</div>
-          </div>
-          <div className="p-6 text-center bg-white border border-green-200 shadow-lg rounded-2xl">
-            <div className="text-3xl font-bold text-green-600">
-              {records.filter(r => r.onsite).length}
-            </div>
-            <div className="font-semibold text-green-800">Onsite Entries</div>
-          </div>
-          <div className="p-6 text-center bg-white border border-orange-200 shadow-lg rounded-2xl">
-            <div className="text-3xl font-bold text-orange-600">
-              {records.filter(r => r.status === 'checked-in').length}
-            </div>
-            <div className="font-semibold text-orange-800">Checked In</div>
-          </div>
-          <div className="p-6 text-center bg-white border border-purple-200 shadow-lg rounded-2xl">
-            <div className="text-3xl font-bold text-purple-600">
-              {filteredRecords.length}
-            </div>
-            <div className="font-semibold text-purple-800">Filtered Records</div>
-          </div>
-        </div> */}
         <div className="grid grid-cols-2 gap-2 mb-4 md:grid-cols-4">
           <div className="p-3 text-center bg-white border rounded-lg shadow-sm">
             <div className="text-lg font-semibold text-blue-600">
@@ -265,72 +315,7 @@ export default function AttendanceList() {
           </div>
         </div>
 
-
         {/* Filters Section */}
-        {/* <div className="p-6 mb-8 bg-white border border-gray-200 shadow-lg rounded-2xl">
-          <div className="flex flex-col items-start justify-between gap-6 mb-4 lg:flex-row lg:items-center">
-            <div>
-              <h3 className="mb-2 text-xl font-semibold text-gray-800">🔍 Filter Records</h3>
-              <p className="text-gray-600">Filter by specific date or month</p>
-            </div>
-            
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={downloadCSV}
-                className="flex items-center gap-2 px-6 py-3 font-semibold text-white transition shadow-lg bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700"
-              >
-                📥 Download CSV
-              </button>
-              
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-6 py-3 font-semibold text-white transition bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl hover:from-gray-600 hover:to-gray-700"
-              >
-                🗑️ Clear Filters
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-              <label className="block mb-2 text-sm font-semibold text-blue-700">
-                📅 Filter by Date
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                className="w-full p-3 transition border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-2 text-sm font-semibold text-purple-700">
-                📆 Filter by Month
-              </label>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={handleMonthChange}
-                className="w-full p-3 transition border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <div className="w-full p-3 border-2 border-blue-100 bg-blue-50 rounded-xl">
-                <p className="text-sm font-semibold text-blue-700">
-                  Showing {filteredRecords.length} of {records.length} records
-                </p>
-                {(selectedDate || selectedMonth) && (
-                  <p className="mt-1 text-xs text-orange-600">
-                    🔍 Filters applied
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div> */}
-
         <div className="px-4 py-3 mb-4 bg-white border rounded-lg shadow-sm">
           <div className="grid items-end grid-cols-1 gap-3 sm:grid-cols-5">
 
@@ -397,7 +382,6 @@ export default function AttendanceList() {
             )}
           </div>
         </div>
-
 
         {/* Table Section */}
         <div className="overflow-hidden bg-white border border-gray-200 shadow-lg rounded-2xl">

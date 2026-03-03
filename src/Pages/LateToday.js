@@ -118,7 +118,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { isEmployeeHidden } from "../utils/employeeStatus";
 
-const BASE_URL = "http://localhost:5000"; // replace with your backend URL
+const BASE_URL = "https://api.timelyhealth.in"; // replace with your backend URL
 
 const LateToday = () => {
   const [records, setRecords] = useState([]);

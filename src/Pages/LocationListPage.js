@@ -17,16 +17,39 @@ const LocationListPage = () => {
   const [updatedLatitude, setUpdatedLatitude] = useState("");
   const [updatedLongitude, setUpdatedLongitude] = useState("");
 
-  // Fetch all locations
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId') || '';
+  const navigate = useNavigate();
+
+  // Fetch all locations for specific client
   const fetchLocations = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/location/alllocation");
+      // Check if clientId exists
+      if (!clientId) {
+        setErrorMessage("Client ID not found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/location/alllocation/${clientId}`);
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.message || "Failed to fetch locations");
 
-      setLocations(data.locations || []);
-      setFilteredLocations(data.locations || []);
+      // Handle different response structures
+      let locationsData = [];
+      if (Array.isArray(data)) {
+        locationsData = data;
+      } else if (data?.locations && Array.isArray(data.locations)) {
+        locationsData = data.locations;
+      } else if (data?.data && Array.isArray(data.data)) {
+        locationsData = data.data;
+      } else {
+        locationsData = data || [];
+      }
+
+      setLocations(locationsData);
+      setFilteredLocations(locationsData);
       setLoading(false);
     } catch (error) {
       setErrorMessage(error.message);
@@ -36,15 +59,15 @@ const LocationListPage = () => {
 
   useEffect(() => {
     fetchLocations();
-  }, []);
+  }, [clientId]);
 
   // Search and Sort functionality
   useEffect(() => {
     const filtered = locations
       .filter(
         (loc) =>
-          loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          loc.fullAddress.toLowerCase().includes(searchTerm.toLowerCase())
+          loc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          loc.fullAddress?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       .sort((a, b) => {
         // Active (status !== 'inactive') should be first (0), Inactive (status === 'inactive') should be second (1)
@@ -59,8 +82,14 @@ const LocationListPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this location?")) return;
 
+    // Check if clientId exists
+    if (!clientId) {
+      alert("Client ID not found. Please login again.");
+      return;
+    }
+
     try {
-      const response = await fetch(`http://localhost:5000/api/location/deletelocation/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/location/deletelocation/${id}/${clientId}`, {
         method: "DELETE",
       });
       const data = await response.json();
@@ -69,6 +98,7 @@ const LocationListPage = () => {
 
       setLocations((prev) => prev.filter((loc) => loc._id !== id));
       setFilteredLocations((prev) => prev.filter((loc) => loc._id !== id));
+      alert("✅ Location deleted successfully!");
     } catch (error) {
       alert("❌ " + error.message);
     }
@@ -83,8 +113,14 @@ const LocationListPage = () => {
 
     if (!window.confirm(confirmMsg)) return;
 
+    // Check if clientId exists
+    if (!clientId) {
+      alert("Client ID not found. Please login again.");
+      return;
+    }
+
     try {
-      const response = await fetch(`http://localhost:5000/api/location/updatelocation/${location._id}`, {
+      const response = await fetch(`http://localhost:5000/api/location/updatelocation/${location._id}/${clientId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -108,18 +144,25 @@ const LocationListPage = () => {
   // Open Edit Modal
   const openEditModal = (location) => {
     setEditLocation(location);
-    setUpdatedName(location.name);
-    setUpdatedFullAddress(location.fullAddress);
-    setUpdatedLatitude(location.latitude.toString());   // prefill lat
-    setUpdatedLongitude(location.longitude.toString()); // prefill lng
+    setUpdatedName(location.name || "");
+    setUpdatedFullAddress(location.fullAddress || "");
+    setUpdatedLatitude(location.latitude?.toString() || "");
+    setUpdatedLongitude(location.longitude?.toString() || "");
     setIsEditModalOpen(true);
   };
-  const navigate = useNavigate();
+
   // Handle Update
   const handleUpdate = async (e) => {
     e.preventDefault();
+    
+    // Check if clientId exists
+    if (!clientId) {
+      alert("Client ID not found. Please login again.");
+      return;
+    }
+
     try {
-      const response = await fetch(`http://localhost:5000/api/location/updatelocation/${editLocation._id}`, {
+      const response = await fetch(`http://localhost:5000/api/location/updatelocation/${editLocation._id}/${clientId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,13 +205,38 @@ const LocationListPage = () => {
       );
 
       setIsEditModalOpen(false);
+      alert("✅ Location updated successfully!");
     } catch (error) {
       alert("❌ " + error.message);
     }
   };
 
+  // Client Info Banner Component
+  const ClientInfoBanner = () => (
+    <div className="p-3 mb-4 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="font-medium">Client ID:</span>
+          <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
+            {clientId.substring(0, 8)}...
+          </span>
+          <span className="ml-4 text-xs text-gray-500">
+            Showing locations for your client account
+          </span>
+        </div>
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+          Total Locations: {locations.length}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-6xl p-6 mx-auto bg-white rounded-lg shadow-lg">
+      
+      {/* Client Info Banner */}
+      {clientId && <ClientInfoBanner />}
+
       {/* Title + Search */}
       <div className="flex flex-col items-center justify-between gap-4 mb-6 md:flex-row">
         <h2 className="text-2xl font-bold text-blue-900">📍 Location Management</h2>
@@ -211,7 +279,7 @@ const LocationListPage = () => {
       {/* Empty State */}
       {!loading && filteredLocations.length === 0 && (
         <div className="p-6 text-center text-gray-500 rounded-md bg-gray-50">
-          No matching locations found.
+          {clientId ? "No locations found for your client." : "Please login to view locations."}
         </div>
       )}
 
@@ -226,6 +294,7 @@ const LocationListPage = () => {
                 <th className="px-4 py-3 text-sm font-semibold text-left text-white">Full Address</th>
                 <th className="px-4 py-3 text-sm font-semibold text-left text-white">Latitude</th>
                 <th className="px-4 py-3 text-sm font-semibold text-left text-white">Longitude</th>
+                <th className="px-4 py-3 text-sm font-semibold text-center text-white">Status</th>
                 <th className="px-4 py-3 text-sm font-semibold text-center text-white">Actions</th>
               </tr>
             </thead>
@@ -233,31 +302,35 @@ const LocationListPage = () => {
               {filteredLocations.map((loc, index) => (
                 <tr key={loc._id} className="transition hover:bg-blue-50">
                   <td className="px-4 py-3 text-sm text-gray-700">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{loc.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{loc.fullAddress}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{loc.latitude}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{loc.longitude}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{loc.name || "N/A"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{loc.fullAddress || "N/A"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{loc.latitude || "N/A"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{loc.longitude || "N/A"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => handleToggleStatus(loc)}
+                      className={`px-3 py-1 text-xs font-bold rounded uppercase transition ${loc.status === "inactive"
+                          ? "bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700"
+                          : "bg-green-100 text-green-700 hover:bg-gray-200 hover:text-gray-700"
+                        }`}
+                      title={loc.status === "inactive" ? "Make Active" : "Make Inactive"}
+                    >
+                      {loc.status === "inactive" ? "Inactive" : "Active"}
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-3">
                       <button
                         onClick={() => openEditModal(loc)}
                         className="p-2 text-blue-600 transition rounded hover:bg-blue-100"
+                        title="Edit Location"
                       >
                         <FiEdit size={18} />
                       </button>
                       <button
-                        onClick={() => handleToggleStatus(loc)}
-                        className={`px-2 py-1 text-[10px] font-bold rounded uppercase transition ${loc.status === "inactive"
-                            ? "bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700"
-                            : "bg-green-100 text-green-700 hover:bg-gray-200 hover:text-gray-700"
-                          }`}
-                        title={loc.status === "inactive" ? "Make Active" : "Make Inactive"}
-                      >
-                        {loc.status === "inactive" ? "Inactive" : "Active"}
-                      </button>
-                      <button
                         onClick={() => handleDelete(loc._id)}
                         className="p-2 text-red-600 transition rounded hover:bg-red-100"
+                        title="Delete Location"
                       >
                         <FiTrash2 size={18} />
                       </button>
@@ -278,7 +351,7 @@ const LocationListPage = () => {
             <form onSubmit={handleUpdate}>
               {/* Location Name */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Location Name</label>
+                <label className="block text-sm font-medium text-gray-700">Location Name *</label>
                 <input
                   type="text"
                   value={updatedName}
@@ -290,7 +363,7 @@ const LocationListPage = () => {
 
               {/* Full Address */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Full Address</label>
+                <label className="block text-sm font-medium text-gray-700">Full Address *</label>
                 <textarea
                   value={updatedFullAddress}
                   onChange={(e) => setUpdatedFullAddress(e.target.value)}
@@ -302,7 +375,7 @@ const LocationListPage = () => {
 
               {/* Latitude */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Latitude</label>
+                <label className="block text-sm font-medium text-gray-700">Latitude *</label>
                 <input
                   type="text"
                   value={updatedLatitude}
@@ -314,7 +387,7 @@ const LocationListPage = () => {
 
               {/* Longitude */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700">Longitude</label>
+                <label className="block text-sm font-medium text-gray-700">Longitude *</label>
                 <input
                   type="text"
                   value={updatedLongitude}

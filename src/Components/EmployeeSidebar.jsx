@@ -203,7 +203,7 @@ const EmployeeSidebar = ({ isCollapsed, isMobile, onClose }) => {
         {},
         { withCredentials: true }
       );
-    } catch (err) {}
+    } catch (err) { }
 
     localStorage.clear();
     navigate("/employee-login");
@@ -218,7 +218,8 @@ const EmployeeSidebar = ({ isCollapsed, isMobile, onClose }) => {
     },
     {
       icon: <i className="ri-calendar-close-fill"></i>,
-      name: "Leave",path: "/leave-application" },
+      name: "Leave", path: "/leave-application"
+    },
     //   dropdown: [
     //     { name: "Leave Application", path: "/leave-application" },
     //     { name: "My Leaves", path: "/myleaves" },
@@ -228,15 +229,17 @@ const EmployeeSidebar = ({ isCollapsed, isMobile, onClose }) => {
       icon: <i className="ri-file-chart-fill"></i>,
       name: "Attendance",
       dropdown: [
-        { name: "Attendance Report", path: "/myattendance" },
         { name: "Check In", path: "/attendance-capture" },
+        { name: "Attendance Report", path: "/myattendance" },
+        // { name: "Check In", path: "/attendance-capture" },
         { name: "My Shift", path: "/my-shift" },
         { name: "My Assigned Location", path: "/mylocation" },
       ],
     },
     {
       icon: <i className="ri-money-dollar-box-fill"></i>,
-      name: "Salary",path: "/mysalary" },
+      name: "Salary", path: "/mysalary"
+    },
     //   dropdown: [{ name: "My Salary", path: "/mysalary" }],
     // },
     {
@@ -258,13 +261,11 @@ const EmployeeSidebar = ({ isCollapsed, isMobile, onClose }) => {
 
       {/* Sidebar */}
       <div
-        className={`h-screen bg-blue-800 text-white flex flex-col transition-all duration-300 ease-in-out z-50 ${
-          isMobile
-            ? `fixed top-0 left-0 ${
-                isCollapsed ? "-translate-x-full" : "translate-x-0"
-              } w-64`
+        className={`h-screen bg-blue-800 text-white flex flex-col transition-all duration-300 ease-in-out z-50 ${isMobile
+            ? `fixed top-0 left-0 ${isCollapsed ? "-translate-x-full" : "translate-x-0"
+            } w-64`
             : `relative ${isCollapsed ? "w-16" : "w-64"}`
-        }`}
+          }`}
       >
         {/* Header */}
         <div className="h-16 flex-shrink-0 flex items-center justify-center bg-blue-900 font-bold">
@@ -293,9 +294,8 @@ const EmployeeSidebar = ({ isCollapsed, isMobile, onClose }) => {
                       {!isCollapsed && (
                         <FaChevronDown
                           onClick={(e) => toggleDropdown(e, item.name)}
-                          className={`text-xs cursor-pointer transition-transform flex-shrink-0 ${
-                            openDropdown === item.name ? "rotate-180" : ""
-                          }`}
+                          className={`text-xs cursor-pointer transition-transform flex-shrink-0 ${openDropdown === item.name ? "rotate-180" : ""
+                            }`}
                         />
                       )}
                     </div>
@@ -339,4 +339,3 @@ const EmployeeSidebar = ({ isCollapsed, isMobile, onClose }) => {
 };
 
 export default EmployeeSidebar;
-

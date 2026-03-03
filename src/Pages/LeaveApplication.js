@@ -39,7 +39,7 @@ const LeaveRequestForm = ({ defaultEmployeeId = "", defaultEmployeeName = "" }) 
     setErrorMessage("");
 
     try {
-      const response = await axios.post("https://api.timelyhealth.in//api/leaves/add-leave", formData);
+      const response = await axios.post("https://api.timelyhealth.in/api/leaves/add-leave", formData);
 
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(response.data.error || "Something went wrong");

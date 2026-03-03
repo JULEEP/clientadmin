@@ -14,7 +14,7 @@ const PendingAttendance = () => {
       // Fetch leaves AND employees to check status
       const [leavesRes, empRes] = await Promise.all([
         axios.get("https://attendancebackend-5cgn.onrender.com/api/leaves/pendingleaves"),
-        axios.get("http://localhost:5000/api/employees/get-employees")
+        axios.get("https://api.timelyhealth.in/api/employees/get-employees")
       ]);
 
       const rawData = leavesRes.data.records || leavesRes.data;

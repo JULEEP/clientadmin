@@ -9,7 +9,7 @@
 
 //   const navigate = useNavigate();
 
-//   const BASE_URL = "http://localhost:5000";
+//   const BASE_URL = "https://api.timelyhealth.in";
 
 //   // ✅ Correct useEffect (Attendance Summary Fetch)
 //   useEffect(() => {
@@ -173,7 +173,7 @@
 //   const recordsPerPage = 10;
 
 //   const navigate = useNavigate();
-//   const BASE_URL = "http://localhost:5000";
+//   const BASE_URL = "https://api.timelyhealth.in";
 
 //   // ✅ Get current logged-in employee data
 //   const getCurrentEmployee = () => {
@@ -879,7 +879,7 @@ export default function EmployeeDashboard() {
   const recordsPerPage = 10;
 
   const navigate = useNavigate();
-  const BASE_URL = "http://localhost:5000";
+  const BASE_URL = "https://api.timelyhealth.in";
 
   // ✅ Get current logged-in employee data
   const getCurrentEmployee = () => {

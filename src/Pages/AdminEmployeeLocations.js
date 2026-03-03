@@ -6,7 +6,7 @@ export default function AdminEmployeeLocations() {
   const [form, setForm] = useState({ name: "", latitude: "", longitude: "" });
   const [message, setMessage] = useState("");
 
-  const BASE_URL = "http://localhost:5000api/employees";
+  const BASE_URL = "https://api.timelyhealth.in/api/employees";
 
   // ✅ Fetch all employees
   const fetchEmployees = async () => {

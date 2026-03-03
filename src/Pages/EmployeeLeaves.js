@@ -46,7 +46,7 @@
 //     const fetchLeaves = async () => {
 //       try {
 //         const resp = await axios.get(
-//           `http://localhost:5000api/leaves/employeeleaves/${employeeId}`
+//           `https://api.timelyhealth.inapi/leaves/employeeleaves/${employeeId}`
 //         );
 
 //         if (resp.data && resp.data.success) {
@@ -183,7 +183,7 @@ const EmployeeLeaves = () => {
     const fetchLeaves = async () => {
       try {
         const resp = await axios.get(
-          `http://localhost:5000/api/leaves/employeeleaves/${employeeId}`
+          `https://api.timelyhealth.in/api/leaves/employeeleaves/${employeeId}`
         );
 
         if (resp.data && resp.data.success) {

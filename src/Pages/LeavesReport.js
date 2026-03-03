@@ -6,7 +6,7 @@
 
 //   const fetchApprovedLeaves = async () => {
 //     try {
-//       const res = await axios.get("http://localhost:5000/api/leaves/approved-leaves");
+//       const res = await axios.get("https://api.timelyhealth.in/api/leaves/approved-leaves");
 //       setApprovedLeaves(res.data);
 //     } catch (err) {
 //       console.error("Failed to fetch approved leaves:", err);
@@ -80,7 +80,7 @@
 
 //   const fetchApprovedLeaves = async () => {
 //     try {
-//       const res = await axios.get("http://localhost:5000/api/leaves/leaves");
+//       const res = await axios.get("https://api.timelyhealth.in/api/leaves/leaves");
 //       // ✅ Filter only approved leaves
 //       const approved = (res.data.records || res.data).filter(
 //         (l) => l.status?.toLowerCase() === "approved"
@@ -148,7 +148,7 @@
 
 //   const fetchApprovedLeaves = async () => {
 //     try {
-//       const res = await axios.get("http://localhost:5000/api/leaves/leaves");
+//       const res = await axios.get("https://api.timelyhealth.in/api/leaves/leaves");
 //       // ✅ Filter only approved leaves
 //       const approved = (res.data.records || res.data).filter(
 //         (l) => l.status?.toLowerCase() === "approved"
@@ -260,7 +260,7 @@
 //   // ✅ Fetch all approved leaves
 //   const fetchApprovedLeaves = async () => {
 //     try {
-//       const res = await axios.get("http://localhost:5000/api/leaves/leaves");
+//       const res = await axios.get("https://api.timelyhealth.in/api/leaves/leaves");
 //       const approved = (res.data.records || res.data).filter(
 //         (l) => l.status?.toLowerCase() === "approved"
 //       );
@@ -427,23 +427,65 @@ const LeaveReport = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId') || '';
 
   // ✅ Fetch all approved leaves and employees
   const fetchApprovedLeaves = async () => {
     try {
+      setLoading(true);
+      
+      // Check if clientId exists
+      if (!clientId) {
+        console.error("Client ID not found. Please login again.");
+        setApprovedLeaves([]);
+        setFilteredLeaves([]);
+        setLoading(false);
+        return;
+      }
+
       const [leavesRes, empRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/leaves/leaves?status=approved"),
-        axios.get("http://localhost:5000/api/employees/get-employees")
+        axios.get(`http://localhost:5000/api/leaves/leaves/${clientId}?status=approved`),
+        axios.get(`http://localhost:5000/api/employees/get-employees/${clientId}`)
       ]);
 
-      const employees = empRes.data || [];
-      const allLeaves = leavesRes.data.records || leavesRes.data;
+      // Handle different response structures
+      let employees = [];
+      if (Array.isArray(empRes.data)) {
+        employees = empRes.data;
+      } else if (empRes.data?.employees && Array.isArray(empRes.data.employees)) {
+        employees = empRes.data.employees;
+      } else if (empRes.data?.data && Array.isArray(empRes.data.data)) {
+        employees = empRes.data.data;
+      } else {
+        employees = empRes.data || [];
+      }
 
+      let allLeaves = [];
+      if (Array.isArray(leavesRes.data)) {
+        allLeaves = leavesRes.data;
+      } else if (leavesRes.data?.records && Array.isArray(leavesRes.data.records)) {
+        allLeaves = leavesRes.data.records;
+      } else if (leavesRes.data?.leaves && Array.isArray(leavesRes.data.leaves)) {
+        allLeaves = leavesRes.data.leaves;
+      } else if (leavesRes.data?.data && Array.isArray(leavesRes.data.data)) {
+        allLeaves = leavesRes.data.data;
+      } else {
+        allLeaves = leavesRes.data || [];
+      }
+
+      // Filter approved leaves and exclude hidden employees
       const approved = allLeaves.filter((l) => {
         if (l.status?.toLowerCase() !== "approved") return false;
 
         // Find employee to check status
-        const emp = employees.find(e => e.employeeId === l.employeeId || e._id === l.employeeId);
+        const emp = employees.find(e => 
+          e.employeeId === l.employeeId || 
+          e._id === l.employeeId ||
+          e.email === l.employeeEmail
+        );
 
         // Use central utility with employee object (or fallback to ID check)
         return !isEmployeeHidden(emp || { employeeId: l.employeeId });
@@ -453,16 +495,20 @@ const LeaveReport = () => {
       setFilteredLeaves(approved);
     } catch (err) {
       console.error("Failed to fetch data:", err);
+      setApprovedLeaves([]);
+      setFilteredLeaves([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchApprovedLeaves();
-  }, []);
+  }, [clientId]);
 
   // ✅ Unique employee and leave type lists
-  const employees = [...new Set(approvedLeaves.map((l) => l.employeeName))];
-  const leaveTypes = [...new Set(approvedLeaves.map((l) => l.leaveType))];
+  const employees = [...new Set(approvedLeaves.map((l) => l.employeeName).filter(Boolean))];
+  const leaveTypes = [...new Set(approvedLeaves.map((l) => l.leaveType).filter(Boolean))];
 
   // ✅ Filter function
   useEffect(() => {
@@ -500,12 +546,12 @@ const LeaveReport = () => {
     const headers = ["Employee Name,Leave Type,Start Date,End Date,Days,Reason"];
     const rows = filteredLeaves.map((l) =>
       [
-        l.employeeName,
-        l.leaveType,
-        new Date(l.startDate).toLocaleDateString(),
-        new Date(l.endDate).toLocaleDateString(),
-        l.days,
-        `"${l.reason}"`,
+        l.employeeName || "N/A",
+        l.leaveType || "N/A",
+        l.startDate ? new Date(l.startDate).toLocaleDateString() : "N/A",
+        l.endDate ? new Date(l.endDate).toLocaleDateString() : "N/A",
+        l.days || "0",
+        `"${l.reason || "No reason provided"}"`,
       ].join(",")
     );
 
@@ -515,8 +561,8 @@ const LeaveReport = () => {
     link.href = URL.createObjectURL(blob);
 
     const fileName = selectedMonth
-      ? `Approved_Leaves_${selectedMonth}.csv`
-      : "Approved_Leaves_All.csv";
+      ? `Approved_Leaves_${clientId.substring(0, 6)}_${selectedMonth}.csv`
+      : `Approved_Leaves_${clientId.substring(0, 6)}_All.csv`;
 
     link.download = fileName;
     link.click();
@@ -526,7 +572,9 @@ const LeaveReport = () => {
   const leaveCountData = useMemo(() => {
     const countMap = {};
     approvedLeaves.forEach((l) => {
-      countMap[l.employeeName] = (countMap[l.employeeName] || 0) + l.days;
+      if (l.employeeName) {
+        countMap[l.employeeName] = (countMap[l.employeeName] || 0) + (l.days || 0);
+      }
     });
     return Object.entries(countMap).map(([name, totalDays]) => ({
       name,
@@ -534,39 +582,44 @@ const LeaveReport = () => {
     }));
   }, [approvedLeaves]);
 
+  // ✅ Client Info Banner
+  const ClientInfoBanner = () => (
+    <div className="p-3 mb-4 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="font-medium">Client ID:</span>
+          <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
+            {clientId.substring(0, 8)}...
+          </span>
+          <span className="ml-4 text-xs text-gray-500">
+            Showing approved leave reports for your client account
+          </span>
+        </div>
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+          Approved Leaves: {approvedLeaves.length}
+        </span>
+      </div>
+    </div>
+  );
+
+  // ✅ Loading State
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 border-b-2 border-green-600 rounded-full animate-spin"></div>
+          <p className="font-semibold text-gray-600">Loading leave reports...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 mx-auto mt-6 bg-white rounded-lg shadow-md max-w-7xl">
+      
+      {/* Client Info Banner */}
+      {clientId && <ClientInfoBanner />}
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
-
-        <div className="px-3 py-2 text-center rounded-md shadow-sm bg-green-50">
-          <p className="text-[11px] text-gray-500 leading-tight">
-            Approved Leaves
-          </p>
-          <h2 className="text-sm font-semibold text-green-700 leading-tight">
-            {filteredLeaves.length}
-          </h2>
-        </div>
-
-        <div className="px-3 py-2 text-center rounded-md shadow-sm bg-blue-50">
-          <p className="text-[11px] text-gray-500 leading-tight">
-            Employees
-          </p>
-          <h2 className="text-sm font-semibold text-blue-700 leading-tight">
-            {employees.length}
-          </h2>
-        </div>
-
-        <div className="px-3 py-2 text-center rounded-md shadow-sm bg-yellow-50">
-          <p className="text-[11px] text-gray-500 leading-tight">
-            Leave Types
-          </p>
-          <h2 className="text-sm font-semibold text-yellow-700 leading-tight">
-            {leaveTypes.length}
-          </h2>
-        </div>
-
-      </div>
       {/* Header */}
       <div className="flex flex-col items-center justify-between gap-4 mb-6 md:flex-row">
         <h1 className="text-3xl font-bold">Approved Leave Reports</h1>
@@ -614,78 +667,38 @@ const LeaveReport = () => {
         </div>
       </div>
 
-      {/* ✅ Stats Summary */}
-      {/* <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
-        <div className="p-4 text-center rounded-lg shadow bg-green-50">
-          <p className="text-sm text-gray-600">Total Approved Leaves</p>
-          <h2 className="text-2xl font-bold text-green-700">{filteredLeaves.length}</h2>
+      {/* Stats Summary */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="px-3 py-2 text-center rounded-md shadow-sm bg-green-50">
+          <p className="text-[11px] text-gray-500 leading-tight">
+            Approved Leaves
+          </p>
+          <h2 className="text-sm font-semibold text-green-700 leading-tight">
+            {filteredLeaves.length}
+          </h2>
         </div>
 
-        <div className="p-4 text-center rounded-lg shadow bg-blue-50">
-          <p className="text-sm text-gray-600">Total Employees</p>
-          <h2 className="text-2xl font-bold text-blue-700">{employees.length}</h2>
+        <div className="px-3 py-2 text-center rounded-md shadow-sm bg-blue-50">
+          <p className="text-[11px] text-gray-500 leading-tight">
+            Employees
+          </p>
+          <h2 className="text-sm font-semibold text-blue-700 leading-tight">
+            {employees.length}
+          </h2>
         </div>
 
-        <div className="p-4 text-center rounded-lg shadow bg-yellow-50">
-          <p className="text-sm text-gray-600">Leave Types</p>
-          <h2 className="text-2xl font-bold text-yellow-700">{leaveTypes.length}</h2>
+        <div className="px-3 py-2 text-center rounded-md shadow-sm bg-yellow-50">
+          <p className="text-[11px] text-gray-500 leading-tight">
+            Leave Types
+          </p>
+          <h2 className="text-sm font-semibold text-yellow-700 leading-tight">
+            {leaveTypes.length}
+          </h2>
         </div>
-      </div> */}
+      </div>
 
-      {/* <div className="grid grid-cols-3 gap-2 mb-4">
-  
-  <div className="px-3 py-2 text-center rounded-md shadow-sm bg-green-50">
-    <p className="text-[11px] text-gray-500 leading-tight">
-      Approved Leaves
-    </p>
-    <h2 className="text-sm font-semibold text-green-700 leading-tight">
-      {filteredLeaves.length}
-    </h2>
-  </div>
-
-  <div className="px-3 py-2 text-center rounded-md shadow-sm bg-blue-50">
-    <p className="text-[11px] text-gray-500 leading-tight">
-      Employees
-    </p>
-    <h2 className="text-sm font-semibold text-blue-700 leading-tight">
-      {employees.length}
-    </h2>
-  </div>
-
-  <div className="px-3 py-2 text-center rounded-md shadow-sm bg-yellow-50">
-    <p className="text-[11px] text-gray-500 leading-tight">
-      Leave Types
-    </p>
-    <h2 className="text-sm font-semibold text-yellow-700 leading-tight">
-      {leaveTypes.length}
-    </h2>
-  </div>
-
-</div> */}
-
-
-      {/* ✅ Bar Chart */}
-      {/* <div className="p-4 mb-8 rounded-lg shadow bg-gray-50">
-        <h2 className="mb-4 text-xl font-semibold text-gray-800">
-          📊 Who Took the Most Leaves
-        </h2>
-        {leaveCountData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={leaveCountData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="totalDays" fill="#16a34a" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="py-8 text-center text-gray-500">No data available</p>
-        )}
-      </div> */}
-      {/* <h1 className="text-3xl font-bold">Approved Leave Reports</h1> <br/> */}
-      {/* ✅ Leave Table */}
-      <div className="overflow-x-auto">
+      {/* Leave Table */}
+      <div className="overflow-x-auto mb-8">
         <table className="min-w-full text-sm border border-gray-300">
           <thead className="text-gray-700 bg-gray-100">
             <tr>
@@ -701,18 +714,22 @@ const LeaveReport = () => {
             {filteredLeaves.length > 0 ? (
               filteredLeaves.map((l) => (
                 <tr key={l._id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium">{l.employeeName}</td>
-                  <td className="px-4 py-2 capitalize">{l.leaveType}</td>
-                  <td className="px-4 py-2">{new Date(l.startDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-2">{new Date(l.endDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-2">{l.days}</td>
-                  <td className="px-4 py-2">{l.reason}</td>
+                  <td className="px-4 py-2 font-medium">{l.employeeName || "N/A"}</td>
+                  <td className="px-4 py-2 capitalize">{l.leaveType || "N/A"}</td>
+                  <td className="px-4 py-2">
+                    {l.startDate ? new Date(l.startDate).toLocaleDateString() : "N/A"}
+                  </td>
+                  <td className="px-4 py-2">
+                    {l.endDate ? new Date(l.endDate).toLocaleDateString() : "N/A"}
+                  </td>
+                  <td className="px-4 py-2">{l.days || "0"}</td>
+                  <td className="px-4 py-2">{l.reason || "No reason provided"}</td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td colSpan="6" className="py-6 text-center text-gray-500">
-                  No approved leaves found for this selection.
+                  {clientId ? "No approved leaves found for your client." : "Please login to view leave reports."}
                 </td>
               </tr>
             )}
@@ -720,6 +737,7 @@ const LeaveReport = () => {
         </table>
       </div>
 
+      {/* Bar Chart */}
       <div className="p-4 mb-8 rounded-lg shadow bg-gray-50">
         <h2 className="mb-4 text-xl font-semibold text-gray-800">
           📊 Who Took the Most Leaves
@@ -735,7 +753,7 @@ const LeaveReport = () => {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="py-8 text-center text-gray-500">No data available</p>
+          <p className="py-8 text-center text-gray-500">No data available for chart</p>
         )}
       </div>
     </div>

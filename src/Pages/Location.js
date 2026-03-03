@@ -13,6 +13,9 @@ const AddLocationPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [loadingLocation, setLoadingLocation] = useState(false);
 
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId') || '';
+
   // ✅ Detect Current Location
   const handleGetCurrentLocation = async () => {
     if (!navigator.geolocation) {
@@ -60,9 +63,15 @@ const AddLocationPage = () => {
     setSuccessMessage("");
     setErrorMessage("");
 
+    // Check if clientId exists
+    if (!clientId) {
+      setErrorMessage("❌ Client ID not found. Please login again.");
+      return;
+    }
+
     try {
       const response = await fetch(
-        "http://localhost:5000/api/location/add-location",
+        `http://localhost:5000/api/location/add-location/${clientId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,7 +98,7 @@ const AddLocationPage = () => {
 
       // ✅ Redirect after success
       setTimeout(() => {
-        navigate("/locationlist"); // Change route if needed
+        navigate("/locationlist");
       }, 1000);
     } catch (error) {
       setErrorMessage(`❌ ${error.message}`);
@@ -98,6 +107,22 @@ const AddLocationPage = () => {
 
   return (
     <div className="max-w-3xl p-6 mx-auto bg-white rounded-lg shadow-lg">
+      
+      {/* Client Info Banner */}
+      {clientId && (
+        <div className="p-3 mb-4 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center">
+            <span className="font-medium">Client ID:</span>
+            <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
+              {clientId.substring(0, 8)}...
+            </span>
+            <span className="ml-4 text-xs text-gray-500">
+              Location will be added under your client account
+            </span>
+          </div>
+        </div>
+      )}
+
       <h2 className="mb-6 text-2xl font-semibold text-blue-900">Add New Location</h2>
 
       {/* Success / Error Message */}
@@ -116,7 +141,7 @@ const AddLocationPage = () => {
         {/* Location Name */}
         <div className="mb-4">
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Location Name
+            Location Name *
           </label>
           <input
             id="name"
@@ -147,7 +172,7 @@ const AddLocationPage = () => {
         {/* Latitude */}
         <div className="mb-4">
           <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">
-            Latitude
+            Latitude *
           </label>
           <input
             id="latitude"
@@ -163,7 +188,7 @@ const AddLocationPage = () => {
         {/* Longitude */}
         <div className="mb-4">
           <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">
-            Longitude
+            Longitude *
           </label>
           <input
             id="longitude"
@@ -177,9 +202,9 @@ const AddLocationPage = () => {
         </div>
 
         {/* Full Address */}
-        <div className="mb-4">
+        <div className="mb-6">
           <label htmlFor="fullAddress" className="block text-sm font-medium text-gray-700">
-            Full Address
+            Full Address *
           </label>
           <textarea
             id="fullAddress"

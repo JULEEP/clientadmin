@@ -7792,6 +7792,9 @@ const BASE_URL = "http://localhost:5000";
 
 export default function AttendanceSummary() {
   const [editedRows, setEditedRows] = useState({});
+  
+  // ✅ Get clientId from localStorage
+  const clientId = localStorage.getItem("clientId") || "";
 
   const handleHoursChange = (index, value) => {
     const numericValue = parseFloat(value) || 0;
@@ -8124,30 +8127,57 @@ export default function AttendanceSummary() {
     return summary;
   };
 
-  // ✅ Fetch all data from backend
+  // ✅ Fetch all data from backend - UPDATED WITH CLIENT ID
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      // Fetch employees
-      const empRes = await fetch(`${BASE_URL}/api/employees/get-employees`);
+      if (!clientId) {
+        setError("Client ID not found. Please login again!");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Fetch employees with clientId
+      const empRes = await fetch(`${BASE_URL}/api/employees/get-employees/${clientId}`);
       if (!empRes.ok) throw new Error("Failed to fetch employees");
       const empData = await empRes.json();
+      
+      // Handle different response structures
+      let employeesData = [];
+      if (Array.isArray(empData)) {
+        employeesData = empData;
+      } else if (empData?.employees && Array.isArray(empData.employees)) {
+        employeesData = empData.employees;
+      } else if (empData?.data && Array.isArray(empData.data)) {
+        employeesData = empData.data;
+      }
+      
       const INACTIVE_EMPLOYEE_IDS = ['EMP002', 'EMP003', 'EMP004', 'EMP008', 'EMP010', 'EMP018', 'EMP019'];
-      const activeEmployees = empData.filter(emp => {
+      const activeEmployees = employeesData.filter(emp => {
         if (emp.status === 'inactive') return false;
         if (emp.status === 'active') return true;
         return !INACTIVE_EMPLOYEE_IDS.includes(emp.employeeId);
       });
       setEmployees(activeEmployees);
 
-      // Fetch attendance records
-      const attRes = await fetch(`${BASE_URL}/api/attendance/allattendance`);
+      // ✅ Fetch attendance records with clientId
+      const attRes = await fetch(`${BASE_URL}/api/attendance/allattendance/${clientId}`);
       if (!attRes.ok) throw new Error("Failed to fetch attendance records");
       const attData = await attRes.json();
 
-      const sortedRecords = (attData.records || []).sort(
+      // Handle different response structures
+      let attendanceRecords = [];
+      if (Array.isArray(attData)) {
+        attendanceRecords = attData;
+      } else if (attData?.records && Array.isArray(attData.records)) {
+        attendanceRecords = attData.records;
+      } else if (attData?.allAttendance && Array.isArray(attData.allAttendance)) {
+        attendanceRecords = attData.allAttendance;
+      }
+
+      const sortedRecords = attendanceRecords.sort(
         (a, b) => new Date(b.checkInTime) - new Date(a.checkInTime)
       );
 
@@ -8165,21 +8195,26 @@ export default function AttendanceSummary() {
     }
   };
 
-  // ✅ Calculate summary using backend API
+  // ✅ Calculate summary using backend API - UPDATED WITH CLIENT ID IN PARAMS
   const calculateSummaryFromBackend = async () => {
     try {
       console.log("📊 Fetching summary for month:", selectedMonth);
 
-      const response = await fetch(`${BASE_URL}/api/attendancesummary/calculate`, {
+      // ✅ Create request body
+      const requestBody = {
+        fromDate: fromDate || null,
+        toDate: toDate || null,
+        month: selectedMonth || null,
+      };
+
+      console.log("Request Body:", requestBody);
+
+      const response = await fetch(`${BASE_URL}/api/attendancesummary/calculate/${clientId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          fromDate: fromDate || null,
-          toDate: toDate || null,
-          month: selectedMonth || null,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -8221,7 +8256,7 @@ export default function AttendanceSummary() {
     }
   };
 
-  // ✅ Fix wrong data in database
+  // ✅ Fix wrong data in database - UPDATED WITH CLIENT ID IN PARAMS
   const handleFixWrongData = async () => {
     if (!selectedMonth) {
       alert("Please select a month first");
@@ -8232,13 +8267,13 @@ export default function AttendanceSummary() {
       setLoading(true);
       showSaveStatus("🔧 Fixing wrong data...");
 
-      const response = await fetch(`${BASE_URL}/api/attendancesummary/fix-summary-data`, {
+      const response = await fetch(`${BASE_URL}/api/attendancesummary/fix-summary-data/${clientId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          month: selectedMonth
+          month: selectedMonth,
         }),
       });
 
@@ -8259,10 +8294,10 @@ export default function AttendanceSummary() {
     }
   };
 
-  // ✅ Update attendance record in backend
+  // ✅ Update attendance record in backend - UPDATED WITH CLIENT ID IN PARAMS
   const updateAttendanceRecord = async (attendanceId, hours, region, comment, reason) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/attendancesummary/update`, {
+      const response = await fetch(`${BASE_URL}/api/attendancesummary/update/${clientId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -8337,7 +8372,7 @@ export default function AttendanceSummary() {
     }
   };
 
-  // ✅ Auto-save summary to backend
+  // ✅ Auto-save summary to backend - UPDATED WITH CLIENT ID IN PARAMS
   const autoSaveSummary = async (type = "auto", changeTimestamp = null) => {
     if (changeTimestamp && changeTimestamp < lastSaveTimestampRef.current) {
       console.log("Skipping outdated save request");
@@ -8355,7 +8390,7 @@ export default function AttendanceSummary() {
     try {
       console.log("Saving summary to database...", employeeSummary);
 
-      const response = await fetch(`${BASE_URL}/api/attendancesummary/save`, {
+      const response = await fetch(`${BASE_URL}/api/attendancesummary/save/${clientId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -8393,7 +8428,7 @@ export default function AttendanceSummary() {
     }
   };
 
-  // ✅ Fetch employee details from backend - UPDATED
+  // ✅ Fetch employee details from backend - UPDATED WITH CLIENT ID IN PARAMS
   const handleViewDetails = async (employeeId) => {
     try {
       setSelectedEmployee(employeeId);
@@ -8402,10 +8437,10 @@ export default function AttendanceSummary() {
       const params = new URLSearchParams({
         employeeId,
         ...(fromDate && toDate && { fromDate, toDate }),
-        ...(selectedMonth && { month: selectedMonth })
+        ...(selectedMonth && { month: selectedMonth }),
       });
 
-      const response = await fetch(`${BASE_URL}/api/attendancesummary/employee-details?${params}`);
+      const response = await fetch(`${BASE_URL}/api/attendancesummary/employee-details/${clientId}?${params}`);
       const result = await response.json();
 
       if (result.success) {
@@ -8705,6 +8740,9 @@ export default function AttendanceSummary() {
 
     // File name mein filter information add karo
     let fileName = "Attendance_Report";
+    if (clientId) {
+      fileName += `_${clientId.substring(0, 6)}`;
+    }
     if (fromDate && toDate) {
       fileName += `_${fromDate}_to_${toDate}`;
     }
@@ -8716,20 +8754,39 @@ export default function AttendanceSummary() {
     saveAs(blob, fileName);
   };
 
+  // Client Info Component
+  const ClientInfo = () => {
+    if (!clientId) return null;
+    
+    return (
+      <div className="p-3 mb-6 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-blue-800">Client Dashboard</p>
+            <p className="text-xs text-gray-600">ID: {clientId.substring(0, 8)}...</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">Total Employees</p>
+            <p className="text-lg font-bold text-blue-700">{employees.length}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ✅ Initialize on component mount
   useEffect(() => {
-    fetchAllData();
+    if (clientId) {
+      fetchAllData();
 
-    // Setup auto-save interval - ✅ DISABLE FOR NOW
-    autoSaveIntervalRef.current = setInterval(() => {
-      // Comment out auto-save temporarily
-      // if (employeeSummary.length > 0 &&
-      //   JSON.stringify(employeeSummary) !== JSON.stringify(previousSummaryRef.current) &&
-      //   !isSavingRef.current) {
-      //   console.log("5-minute auto-save triggered...");
-      //   autoSaveSummary("scheduled");
-      // }
-    }, 5 * 60 * 1000);
+      // Setup auto-save interval - ✅ DISABLE FOR NOW
+      autoSaveIntervalRef.current = setInterval(() => {
+        // Comment out auto-save temporarily
+      }, 5 * 60 * 1000);
+    } else {
+      setError("Client ID not found. Please login again!");
+      setLoading(false);
+    }
 
     return () => {
       if (autoSaveIntervalRef.current) {
@@ -8739,7 +8796,7 @@ export default function AttendanceSummary() {
         clearTimeout(saveStatusTimeoutRef.current);
       }
     };
-  }, []);
+  }, [clientId]);
 
   // ✅ Auto-save when summary changes - DISABLED
   useEffect(() => {
@@ -8749,16 +8806,6 @@ export default function AttendanceSummary() {
       JSON.stringify(employeeSummary) !== JSON.stringify(previousSummaryRef.current);
 
     // Comment out auto-save on change
-    // if (hasSummaryChanged) {
-    //   console.log("Summary changed, auto-saving...");
-    //   const changeTimestamp = Date.now();
-    // 
-    //   const timeoutId = setTimeout(() => {
-    //     autoSaveSummary("auto", changeTimestamp);
-    //   }, 2000);
-    // 
-    //   return () => clearTimeout(timeoutId);
-    // }
   }, [employeeSummary]);
 
   // ✅ Debug useEffect - UPDATED WITH FUTURE MONTH DETECTION
@@ -8845,6 +8892,18 @@ export default function AttendanceSummary() {
     return pageNumbers;
   };
 
+  if (!clientId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="p-6 text-center">
+          <div className="p-4 text-red-600 bg-red-100 rounded-lg">
+            Client ID not found. Please login again!
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return <div className="flex items-center justify-center min-h-screen">
     <div className="text-lg font-semibold text-blue-600">Loading attendance records...</div>
   </div>;
@@ -8867,11 +8926,8 @@ export default function AttendanceSummary() {
           </div>
         )}
 
-        {/* <h1 className="mb-6 text-3xl font-bold text-blue-700">
-          📊 Employee Attendance Summary
-        </h1> */}
-
-        {/* Working Hours Info - UPDATED CRITERIA */}
+        {/* Client Info Banner */}
+        <ClientInfo />
 
         <div className="p-3 mb-4 bg-white border border-gray-200 shadow-md rounded-lg">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">
@@ -8960,6 +9016,11 @@ export default function AttendanceSummary() {
             </h2>
 
             <div className="flex flex-wrap items-center gap-4">
+              {/* Client ID Badge */}
+              <div className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                Client: {clientId.substring(0, 8)}...
+              </div>
+              
               {/* Items per page selector */}
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-700">
@@ -9150,6 +9211,10 @@ export default function AttendanceSummary() {
                     <div>
                       <span className="font-semibold text-blue-700">Month:</span>
                       <span className="ml-2">{activeMonth}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-blue-700">Client ID:</span>
+                      <span className="ml-2 font-mono text-xs">{clientId.substring(0, 8)}...</span>
                     </div>
                   </div>
                 </div>

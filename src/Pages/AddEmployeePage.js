@@ -1430,6 +1430,9 @@ const AddEmployeePage = () => {
 
   const editingEmployee = location.state?.employee || null;
 
+  // Get clientId from localStorage (MongoDB _id)
+  const clientId = localStorage.getItem('clientId') || '';
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -1607,6 +1610,11 @@ const AddEmployeePage = () => {
       let finalStartTime = isAddingNewShift ? customShiftStartTime : shiftStartTime;
       let finalEndTime = isAddingNewShift ? customShiftEndTime : shiftEndTime;
 
+      // Validate clientId
+      if (!clientId) {
+        throw new Error("Client ID not found. Please login again.");
+      }
+
       // Shift validation
       if (!finalShift) {
         throw new Error("Please select a shift type");
@@ -1693,9 +1701,9 @@ const AddEmployeePage = () => {
 
       } else {
         // ================= ADD NEW EMPLOYEE =================
-        // 1. Add employee
-        await axios.post(
-          "http://localhost:5000/api/employees/add-employee",
+        // 1. Add employee with clientId
+        const addEmployeeResponse = await axios.post(
+          `http://localhost:5000/api/employees/add-employee/${clientId}`, // ✅ clientId in URL params
           {
             name,
             email,
@@ -1707,8 +1715,11 @@ const AddEmployeePage = () => {
             address,
             employeeId,
             locationId,
+            shiftType: finalShift
           }
         );
+
+        console.log("Add employee response:", addEmployeeResponse.data);
 
         // 2. Assign shift with custom times
         const shiftResult = await assignShiftToEmployee(
@@ -1751,7 +1762,7 @@ const AddEmployeePage = () => {
       setTimeout(() => navigate("/employeelist"), 1000);
     } catch (err) {
       console.error("Submit error:", err);
-      setErrorMessage(err.message || "Something went wrong!");
+      setErrorMessage(err.response?.data?.message || err.message || "Something went wrong!");
     } finally {
       setLoading(false);
     }
@@ -1762,6 +1773,21 @@ const AddEmployeePage = () => {
       <h2 className="mb-6 text-2xl font-bold text-blue-900">
         {editingEmployee ? "Edit Employee" : "Add New Employee"}
       </h2>
+
+      {/* Client Info Banner */}
+      {clientId && !editingEmployee && (
+        <div className="p-3 mb-4 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center">
+            <span className="font-medium">Client ID:</span>
+            <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
+              {clientId.substring(0, 8)}...
+            </span>
+            <span className="ml-4 text-xs text-gray-500">
+              Employees will be added under your client account
+            </span>
+          </div>
+        </div>
+      )}
 
       {successMessage && (
         <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
@@ -1776,8 +1802,7 @@ const AddEmployeePage = () => {
 
       <form onSubmit={handleSubmit}>
 
-        {/* Name, Email, Password, Department, Role fields - SAME AS BEFORE */}
-
+        {/* Name, Email, Password, Department, Role fields */}
         <div className="mb-4">
           <label className="block text-sm">Full Name *</label>
           <input value={name} onChange={(e) => setName(e.target.value)} className="w-full p-2 border rounded" required />
@@ -2030,7 +2055,7 @@ const AddEmployeePage = () => {
           </p>
         </div>
 
-        {/* Rest of the form - SAME AS BEFORE */}
+        {/* Rest of the form */}
         <div className="mb-4">
           <label className="block text-sm">Join Date *</label>
           <input type="date" value={joinDate} onChange={(e) => setJoinDate(e.target.value)} className="w-full p-2 border rounded" required />
@@ -2072,61 +2097,13 @@ const AddEmployeePage = () => {
           <input type="number" value={weekOffPerMonth} onChange={(e) => setWeekOffPerMonth(e.target.value)} className="w-full p-2 border rounded" required />
         </div>
 
-        {/* <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-gray-700">
-              Location
-            </label>
-            <button onClick={() => navigate("/addlocation")}
-              type="button"
-              className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
-            >
-              + Add Location
-            </button>
-          </div>
-          <select
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            className="w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select a Location</option>
-            {locations.map((loc) => (
-              <option key={loc._id} value={loc._id}>
-                {loc.name}
-              </option>
-            ))}
-          </select>
-
-        </div> */}
-
         <div className="mb-4">
-          {/* Label + Button */}
           <div className="flex items-center justify-between mb-1">
             <label className="text-sm font-medium text-gray-700">
               Location
             </label>
-
-            {/* <button onClick={() => navigate("/addlocation")}
-              type="button"
-              className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
-            >
-              + Add Location
-            </button> */}
           </div>
 
-          {/* Select */}
-          {/* <select
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            className="w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select a Location</option>
-            {locations.map((loc) => (
-              <option key={loc._id} value={loc._id}>
-                {loc.name}
-              </option>
-            ))}
-          </select> */}
           <select
             value={locationId}
             onChange={(e) => {
@@ -2151,11 +2128,7 @@ const AddEmployeePage = () => {
 
             <option value="add-new">➕ Add New Location</option>
           </select>
-
-
         </div>
-
-
 
         <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded">
           {loading ? "Saving..." : editingEmployee ? "Update Employee" : "Add Employee"}

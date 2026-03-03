@@ -924,14 +924,41 @@ const LeavesList = () => {
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
 
-  // ✅ Fetch all leaves
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId') || '';
+
+  // ✅ Fetch all leaves for specific client
   const fetchLeaves = async () => {
     try {
       setLoading(true);
+      
+      // Check if clientId exists
+      if (!clientId) {
+        console.error("Client ID not found. Please login again.");
+        setLeaves([]);
+        setFilteredLeaves([]);
+        return;
+      }
+
+      // Fetch leaves with clientId
       const res = await axios.get(
-        "http://localhost:5000/api/leaves/leaves"
+        `http://localhost:5000/api/leaves/leaves/${clientId}`
       );
-      const leavesData = res.data.records || res.data || [];
+      
+      // Handle different response structures
+      let leavesData = [];
+      if (Array.isArray(res.data)) {
+        leavesData = res.data;
+      } else if (res.data?.records && Array.isArray(res.data.records)) {
+        leavesData = res.data.records;
+      } else if (res.data?.leaves && Array.isArray(res.data.leaves)) {
+        leavesData = res.data.leaves;
+      } else if (res.data?.data && Array.isArray(res.data.data)) {
+        leavesData = res.data.data;
+      } else {
+        leavesData = res.data || [];
+      }
+      
       const sorted = leavesData.sort(
         (a, b) =>
           new Date(b.createdAt || b.startDate) -
@@ -941,6 +968,8 @@ const LeavesList = () => {
       setFilteredLeaves(sorted);
     } catch (err) {
       console.error("Failed to fetch leaves:", err);
+      setLeaves([]);
+      setFilteredLeaves([]);
     } finally {
       setLoading(false);
     }
@@ -948,11 +977,17 @@ const LeavesList = () => {
 
   useEffect(() => {
     fetchLeaves();
-  }, []);
+  }, [clientId]);
 
   // ✅ Update Leave Status (Approve / Reject)
   const updateLeaveStatus = async (id, status) => {
     try {
+      // Check if clientId exists
+      if (!clientId) {
+        alert("Client ID not found. Please login again.");
+        return;
+      }
+
       const res = await axios.put(
         `http://localhost:5000/api/leaves/updateleaves/${id}`,
         { status }
@@ -1018,7 +1053,9 @@ const LeavesList = () => {
     setStartDateFilter("");
     setEndDateFilter("");
   };
- const navigate = useNavigate();
+
+  const navigate = useNavigate();
+
   // ✅ Stat Box
   const StatCard = ({ label, value, color }) => (
     <div
@@ -1030,7 +1067,26 @@ const LeavesList = () => {
   );
 
   const leaveTypes = [...new Set(leaves.map((l) => l.leaveType).filter(Boolean))];
- 
+
+  // ✅ Client Info Banner
+  const ClientInfoBanner = () => (
+    <div className="p-3 mb-4 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="font-medium">Client ID:</span>
+          <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
+            {clientId.substring(0, 8)}...
+          </span>
+          <span className="ml-4 text-xs text-gray-500">
+            Showing leave requests for your client account
+          </span>
+        </div>
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+          Total Leaves: {leaves.length}
+        </span>
+      </div>
+    </div>
+  );
 
   // ✅ Loading Screen
   if (loading)
@@ -1048,26 +1104,9 @@ const LeavesList = () => {
   return (
     <div className="min-h-screen px-3 py-6 bg-gradient-to-br from-purple-50 to-blue-100">
       <div className="mx-auto max-w-9xl">
-       {/* Header */}
-{/* <div className="relative flex items-center mb-6"> */}
-  {/* Center Title */}
-  {/* <div className="w-full text-center">
-    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-      📋 Leave Requests
-    </h1>
-    <p className="text-sm text-gray-600">
-      Manage and filter employee leave requests easily
-    </p>
-  </div> */}
-
-   {/* Right Button */}
-  {/* <button
-    onClick={() => navigate("/leaves-report")}
-    className="absolute right-0 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-  >
-    📊 Leaves Report
-  </button>
-</div> */}
+        
+        {/* Client Info Banner */}
+        {clientId && <ClientInfoBanner />}
 
         {/* ✅ Stats */}
         <div className="grid grid-cols-2 gap-2 mb-4 sm:grid-cols-4">
@@ -1093,82 +1132,75 @@ const LeavesList = () => {
           />
         </div>
 
-      
-
-
         <div className="p-3 mb-3 bg-white border border-gray-200 shadow-md rounded-xl">
+          {/* Filters – Single Row */}
+          <div className="flex items-end gap-10 flex-nowrap">
+            {/* Search */}
+            <div className="flex flex-col w-64">
+              <label className="mb-1 text-xs font-semibold text-gray-600">
+                <FaSearch className="inline mr-1" /> Search
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Name / ID / Type / Reason"
+              />
+            </div>
 
-  {/* Filters – Single Row */}
-  <div className="flex items-end gap-10 flex-nowrap">
+            {/* Status */}
+            <div className="flex flex-col w-40">
+              <label className="mb-1 text-xs font-semibold text-gray-600">
+                Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
 
-    {/* Search */}
-    <div className="flex flex-col w-64">
-      <label className="mb-1 text-xs font-semibold text-gray-600">
-        <FaSearch className="inline mr-1" /> Search
-      </label>
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-        placeholder="Name / ID / Type / Reason"
-      />
-    </div>
+            {/* From Date */}
+            <div className="flex flex-col w-40">
+              <label className="mb-1 text-xs font-semibold text-gray-600">
+                <FaCalendarAlt className="inline mr-1" /> From
+              </label>
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+                className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
 
-    {/* Status */}
-    <div className="flex flex-col w-40">
-      <label className="mb-1 text-xs font-semibold text-gray-600">
-        Status
-      </label>
-      <select
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-      >
-        <option value="all">All</option>
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-      </select>
-    </div>
+            {/* To Date */}
+            <div className="flex flex-col w-40">
+              <label className="mb-1 text-xs font-semibold text-gray-600">
+                <FaCalendarAlt className="inline mr-1" /> To
+              </label>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+                className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
 
-    {/* From Date */}
-    <div className="flex flex-col w-40">
-      <label className="mb-1 text-xs font-semibold text-gray-600">
-        <FaCalendarAlt className="inline mr-1" /> From
-      </label>
-      <input
-        type="date"
-        value={startDateFilter}
-        onChange={(e) => setStartDateFilter(e.target.value)}
-        className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-      />
-    </div>
-
-    {/* To Date */}
-    <div className="flex flex-col w-40">
-      <label className="mb-1 text-xs font-semibold text-gray-600">
-        <FaCalendarAlt className="inline mr-1" /> To
-      </label>
-      <input
-        type="date"
-        value={endDateFilter}
-        onChange={(e) => setEndDateFilter(e.target.value)}
-        className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-      />
-    </div>
-
-    {/* Clear Button */}
-    <button
-      onClick={clearFilters}
-      className="h-9 px-5 mb-[2px] text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition"
-    >
-      Clear Filters
-    </button>
-
-  </div>
-</div>
-
+            {/* Clear Button */}
+            <button
+              onClick={clearFilters}
+              className="h-9 px-5 mb-[2px] text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
 
         {/* ✅ Table */}
         <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
@@ -1176,7 +1208,6 @@ const LeavesList = () => {
             <thead className="text-left text-sm text-white bg-gradient-to-r from-purple-500 to-blue-600">
               <tr>
                 <th className="px-4 py-3 rounded-tl-lg">Employee</th>
-                {/* <th className="px-4 py-3">Leave Type</th> */}
                 <th className="px-4 py-3">Dates</th>
                 <th className="px-4 py-3">Days</th>
                 <th className="px-4 py-3">Reason</th>
@@ -1192,31 +1223,23 @@ const LeavesList = () => {
                     className="transition border-b hover:bg-gray-50"
                   >
                     <td className="px-4 py-3">
-                      <div className="font-semibold">{l.employeeName}</div>
-                      {/* <div className="text-xs text-gray-500">
-                        ID: {l.employeeId}
-                      </div> */}
-                      {/* <div className="text-xs text-gray-400">
-                        {new Date(l.createdAt).toLocaleDateString()}
-                      </div> */}
+                      <div className="font-semibold">{l.employeeName || "N/A"}</div>
+                      <div className="text-xs text-gray-500">
+                        ID: {l.employeeId || "N/A"}
+                      </div>
                     </td>
-                    {/* <td className="px-4 py-3">
-                      <span className="px-3 py-1 text-xs text-gray-700 bg-gray-100 rounded-full">
-                        {l.leaveType || "Enter Leave Type"}
-                      </span>
-                    </td> */}
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(l.startDate).toLocaleDateString()} <br />
+                      {l.startDate ? new Date(l.startDate).toLocaleDateString() : "N/A"} <br />
                       <span className="text-xs text-gray-400">to</span> <br />
-                      {new Date(l.endDate).toLocaleDateString()}
+                      {l.endDate ? new Date(l.endDate).toLocaleDateString() : "N/A"}
                     </td>
                     <td className="px-4 py-3">
                       <span className="px-3 py-1 text-xs text-blue-700 bg-blue-100 rounded-full">
-                        {l.days} days
+                        {l.days || 0} days
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
-                      {l.reason}
+                      {l.reason || "No reason provided"}
                     </td>
                     <td className="px-4 py-3">
                       {l.status === "approved" && (
@@ -1232,6 +1255,11 @@ const LeavesList = () => {
                       {l.status === "rejected" && (
                         <span className="px-3 py-1 text-xs text-red-700 bg-red-100 rounded-full">
                           ❌ Rejected
+                        </span>
+                      )}
+                      {!l.status && (
+                        <span className="px-3 py-1 text-xs text-gray-700 bg-gray-100 rounded-full">
+                          ⚠️ Unknown
                         </span>
                       )}
                     </td>
@@ -1263,8 +1291,8 @@ const LeavesList = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-6 text-center text-gray-500">
-                    No leave records found.
+                  <td colSpan="6" className="py-6 text-center text-gray-500">
+                    {clientId ? "No leave records found for your client." : "Please login to view leaves."}
                   </td>
                 </tr>
               )}

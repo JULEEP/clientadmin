@@ -128,6 +128,31 @@ import ShiftManagement from "./Pages/ShiftManagement.js";
 import SuperAdminMedicalMonitor from "./Pages/SuperAdminMedicalMonitor.js";
 import TimelyFooter from "./Pages/TimelyFooter.js";
 import WhoWeServePage from "./Pages/WhoWeServePage.js";
+import CampDashboard from "./Pages/CampDashboard.js";
+import AddPatient from "./Pages/AddPatient.js";
+import BmiDashboard from "./Pages/BmiDashboard.js";
+import PatientDetails from "./Pages/PatientDetails.js";
+import AddCabin from "./Pages/AddCabin.js";
+import MyCabins from "./Pages/MyCabins.js";
+import UserActivity from "./Pages/UserActivity.js";
+import UserAccessManagement from "./Pages/UserAccessManagement.js";
+import JobPost from "./Pages/JobPost.js";
+import Score from "./Pages/Score.js";
+import SendOffer from "./Pages/SendOffer.js";
+import JobApplicants from "./Pages/JobApplicants.js";
+import AssessmentManager from "./Pages/AssessmentManager.js";
+import Documents from "./Pages/Documents.js";
+import EmployeeResignation from "./Pages/EmployeeResignation.js";
+import RecruitmentDashboard from "./Pages/RecruitmentDashboard.js";
+import AllJobs from "./Pages/AllJobs.js";
+import AppliedJobs from "./Pages/AppliedJobs.js";
+import Interview from "./Pages/Interview.js";
+import Letters from "./Pages/Letters.js";
+import CandidateDocuments from "./Pages/CandidateDocuments.js";
+import CandidatePersonalDocuments from "./Pages/CandidatePersonalDocuments.js";
+import EmployeeJourney from "./Pages/EmployeeJourney.js";
+import AllExpensives from "./Pages/AllExpensives.js";
+import AllBookings from "./Pages/AllBookings.js";
 
 
 
@@ -279,6 +304,31 @@ function App() {
               <Route path="attedancesummary" element={<AttendanceSummary />} />
               {/* <Route path="/empmanagement" element={<EmpManagment />} /> */}
               <Route path="/payroll" element={<PayRoll />} />
+              <Route path="/useractivity" element={<UserActivity />} />
+              <Route path="/useraccess" element={<UserAccessManagement />} />
+                <Route path="/jobpost" element={<JobPost />} />
+              <Route path="/score" element={<Score />} />
+              <Route path="/sendoffer" element={<SendOffer />} />
+              <Route path="/job-applicants" element={<JobApplicants />} />
+              <Route path="/assessment-manager" element={<AssessmentManager />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/camp" element={<CampDashboard />} />
+              <Route path="/add-patient" element={<AddPatient />} />
+              <Route path="/bmi-dashboard" element={<BmiDashboard />} />
+               <Route path="/patient/:id" element={<PatientDetails />} />
+              <Route path="/add-cabin" element={<AddCabin />} />
+               <Route path="/mycabins" element={<MyCabins />} />
+              <Route path="/employee-resignation" element={<EmployeeResignation />} />
+              <Route path="/recruitment-dashboard" element={<RecruitmentDashboard />} />
+              <Route path="/all-jobs" element={<AllJobs />} />
+              <Route path="/applied-jobs" element={<AppliedJobs />} />
+              <Route path="/interview" element={<Interview />} />
+              <Route path="/letters" element={<Letters />} />
+              <Route path="/candidate-documents" element={<CandidateDocuments />} />
+              <Route path="/candidate-personal-documents" element={<CandidatePersonalDocuments />} />
+              <Route path="/employee-journey" element={<EmployeeJourney />} />
+              <Route path="/all-expensives" element={<AllExpensives />} />
+              <Route path="/allbookings" element={<AllBookings />}></Route>
 
             </Routes>
           </AdminLayout>

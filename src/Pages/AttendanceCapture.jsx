@@ -1794,7 +1794,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const BASE_URL = "http://localhost:5000/";
+const BASE_URL = "https://api.timelyhealth.in/";
 const ONSITE_RADIUS_M = 50;
 
 // Haversine formula
