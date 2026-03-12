@@ -14,20 +14,12 @@ import {
   Trash2,
   Edit,
   Eye,
-  ChevronRight,
-  Clock,
-  CheckCircle,
-  XCircle,
   X,
-  Filter,
   Search,
-  Download,
-  Printer,
-  Phone,
-  Mail,
-  Globe,
-  Star,
-  Image as ImageIcon
+  Plus,
+  ChevronLeft,
+  Image as ImageIcon,
+  Upload
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -43,9 +35,31 @@ function MyCabins() {
   // Modal States
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedCabin, setSelectedCabin] = useState(null);
   const [editFormData, setEditFormData] = useState({});
+  
+  // Add Cabin Form States - EXACTLY as per your API code
+  const [addFormData, setAddFormData] = useState({
+    name: "",
+    description: "",
+    capacity: "",
+    address: "",
+    price: "",
+    amenities: {
+      wifi: false,
+      parking: false,
+      lockers: false,
+      privateWashroom: false,
+      secureAccess: false,
+      comfortSeating: false,
+    },
+  });
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  
   const [editLoading, setEditLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
   
   const navigate = useNavigate();
 
@@ -73,7 +87,6 @@ function MyCabins() {
         const token = localStorage.getItem("token") || localStorage.getItem("authToken");
         
         if (!token) {
-          setError("Authentication token not found. Please login again.");
           setLoading(false);
           return;
         }
@@ -125,8 +138,7 @@ function MyCabins() {
 
     const filtered = cabins.filter(cabin =>
       cabin.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cabin.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cabin.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      cabin.address?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
     setFilteredCabins(filtered);
@@ -202,6 +214,28 @@ function MyCabins() {
     setEditModalOpen(true);
   };
 
+  // Handle Add Modal Open
+  const handleOpenAddModal = () => {
+    setAddFormData({
+      name: "",
+      description: "",
+      capacity: "",
+      address: "",
+      price: "",
+      amenities: {
+        wifi: false,
+        parking: false,
+        lockers: false,
+        privateWashroom: false,
+        secureAccess: false,
+        comfortSeating: false,
+      },
+    });
+    setImages([]);
+    setImagePreviews([]);
+    setAddModalOpen(true);
+  };
+
   // Handle edit form change
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -211,9 +245,49 @@ function MyCabins() {
     }));
   };
 
+  // Handle add form change
+  const handleAddChange = (e) => {
+    const { name, value } = e.target;
+    setAddFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle image upload
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setImages(prev => [...prev, ...files]);
+    
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  // Remove image
+  const removeImage = (index) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => {
+      // Clean up object URL to prevent memory leaks
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   // Toggle amenity in edit form
   const toggleEditAmenity = (key) => {
     setEditFormData(prev => ({
+      ...prev,
+      amenities: {
+        ...prev.amenities,
+        [key]: !prev.amenities[key]
+      }
+    }));
+  };
+
+  // Toggle amenity in add form
+  const toggleAddAmenity = (key) => {
+    setAddFormData(prev => ({
       ...prev,
       amenities: {
         ...prev.amenities,
@@ -264,9 +338,125 @@ function MyCabins() {
     }
   };
 
+  // Handle add cabin - EXACTLY as per your API code
+  const handleAddCabin = async (e) => {
+    e.preventDefault();
+    
+    // Check if clientId is available
+    if (!clientId) {
+      alert("Client ID not found. Please login again.");
+      navigate("/login");
+      return;
+    }
+
+    setAddLoading(true);
+
+    // Create FormData for API
+    const data = new FormData();
+    data.append("name", addFormData.name);
+    data.append("description", addFormData.description);
+    data.append("capacity", addFormData.capacity);
+    data.append("address", addFormData.address);
+    data.append("price", addFormData.price);
+
+    // ✅ Send amenities correctly
+    data.append("amenities", JSON.stringify(addFormData.amenities));
+
+    // Append all images
+    images.forEach((img) => {
+      data.append("images", img);
+    });
+
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      
+      if (!token) {
+        alert("Authentication token not found. Please login again.");
+        navigate("/login");
+        return;
+      }
+
+      // Log the data being sent (for debugging)
+      console.log("Submitting cabin data for client:", clientId);
+      console.log("Cabin Name:", addFormData.name);
+      console.log("Amenities:", addFormData.amenities);
+      console.log("Images count:", images.length);
+
+      // Send request with clientId in URL
+      const response = await axios.post(
+        `http://localhost:5050/api/cabins/${clientId}`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("API Response:", response.data);
+      
+      alert("Cabin added successfully!");
+      
+      // Clear form
+      setAddFormData({
+        name: "",
+        description: "",
+        capacity: "",
+        address: "",
+        price: "",
+        amenities: {
+          wifi: false,
+          parking: false,
+          lockers: false,
+          privateWashroom: false,
+          secureAccess: false,
+          comfortSeating: false,
+        },
+      });
+      setImages([]);
+      setImagePreviews([]);
+      
+      // Refresh cabins list
+      const fetchResponse = await axios.get(
+        `http://localhost:5050/api/cabins/my-cabins/${clientId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (fetchResponse.data.success || fetchResponse.data.cabins) {
+        const cabinsData = fetchResponse.data.cabins || [];
+        setCabins(cabinsData);
+        setFilteredCabins(cabinsData);
+      }
+      
+      setAddModalOpen(false);
+      
+    } catch (err) {
+      console.error("Error adding cabin:", err);
+      
+      if (err.response) {
+        console.error("Server Response:", err.response.data);
+        console.error("Status:", err.response.status);
+        alert(`Error: ${err.response.data.message || "Failed to add cabin"}`);
+      } else if (err.request) {
+        console.error("No response received:", err.request);
+        alert("Network error. Please check your connection.");
+      } else {
+        console.error("Error setting up request:", err.message);
+        alert("Error: " + err.message);
+      }
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   // Handle delete cabin
   const handleDeleteCabin = async (cabinId) => {
-    if (!window.confirm("Are you sure you want to delete this cabin? This action cannot be undone.")) {
+    if (!window.confirm("Are you sure you want to delete this cabin?")) {
       return;
     }
 
@@ -284,7 +474,6 @@ function MyCabins() {
 
       if (response.data.success) {
         alert("Cabin deleted successfully!");
-        // Remove from state
         setCabins(prev => prev.filter(cabin => cabin._id !== cabinId));
         setFilteredCabins(prev => prev.filter(cabin => cabin._id !== cabinId));
       }
@@ -294,40 +483,13 @@ function MyCabins() {
     }
   };
 
-  // Export data as CSV
-  const exportToCSV = () => {
-    const headers = ["Name", "Address", "Capacity", "Price/Hour", "Amenities", "Created Date"];
-    const data = cabins.map(cabin => [
-      cabin.name,
-      cabin.address,
-      cabin.capacity,
-      `₹${cabin.price}`,
-      getAmenitiesCount(cabin.amenities),
-      formatDate(cabin.createdAt)
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...data.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `my-cabins-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   // Loading state
   if (loading) {
     return (
-      <div className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 flex items-center justify-center py-12">
+      <div className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto mb-6"></div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Loading Your Cabins</h3>
-          <p className="text-gray-500">Fetching your cabin listings...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your cabins...</p>
         </div>
       </div>
     );
@@ -335,560 +497,495 @@ function MyCabins() {
 
   return (
     <>
-      <div className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
-        {/* Main container with left padding */}
-        <div className="max-w-7xl mx-auto pl-2 md:pl-4 lg:pl-6">
-          
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                  <Building2 size={32} className="text-blue-600" />
-                  My Cabins
-                </h1>
-                <p className="text-gray-600 mt-2">
-                  Manage your coworking spaces and listings
-                </p>
-              </div>
-              
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => navigate("/add-cabin")}
-                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                >
-                  <Building2 size={18} />
-                  Add New Cabin
-                </button>
-                
+      <div className="w-full min-h-screen bg-gradient-to-b from-gray-50 to-blue-50">
+        {/* Header with Gradient */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white sticky top-0 z-10 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate("/dashboard")}
-                  className="px-5 py-2.5 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2"
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                 >
-                  <ChevronRight size={18} />
-                  Dashboard
+                  <ChevronLeft size={24} />
                 </button>
+                <div>
+                  <h1 className="text-2xl font-bold">MANAGE CABINS</h1>
+                  <p className="text-blue-100 text-sm mt-1">
+                    Total {filteredCabins.length} workspaces listed
+                  </p>
+                </div>
               </div>
+              
+              {/* Premium Add Cabin Button */}
+              <button
+                onClick={handleOpenAddModal}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 hover:bg-gradient-to-r hover:from-[#1E3A8A] hover:to-[#14B8A6] transition-all duration-300 transform hover:-translate-y-1 active:scale-95"
+              >
+                <div className="p-1 bg-white/20 rounded-lg">
+                  <Plus size={16} strokeWidth={3} />
+                </div>
+                Add New Cabin
+              </button>
             </div>
-            
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Cabins</p>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-2">{cabins.length}</h3>
-                  </div>
-                  <div className="p-2.5 bg-blue-100 rounded-lg">
-                    <Building2 size={20} className="text-blue-600" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Active Cabins</p>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-2">{cabins.length}</h3>
-                  </div>
-                  <div className="p-2.5 bg-green-100 rounded-lg">
-                    <CheckCircle size={20} className="text-green-600" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Capacity</p>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-2">
-                      {cabins.reduce((sum, cabin) => sum + parseInt(cabin.capacity || 0), 0)}
-                    </h3>
-                  </div>
-                  <div className="p-2.5 bg-amber-100 rounded-lg">
-                    <Users size={20} className="text-amber-600" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Avg. Price/Hour</p>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-2">
-                      {cabins.length > 0 
-                        ? `₹${Math.round(cabins.reduce((sum, cabin) => sum + parseInt(cabin.price || 0), 0) / cabins.length)}`
-                        : "₹0"
-                      }
-                    </h3>
-                  </div>
-                  <div className="p-2.5 bg-purple-100 rounded-lg">
-                    <IndianRupee size={20} className="text-purple-600" />
-                  </div>
-                </div>
-              </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Search */}
+          <div className="mb-8">
+            <div className="relative max-w-md">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
             </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-5 bg-red-50 border border-red-200 rounded-xl">
-              <div className="flex items-start gap-3">
-                <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-red-800">Error Loading Cabins</h3>
-                  <p className="text-red-600 text-sm mt-1">{error}</p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="mt-3 px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </div>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
-          {/* Search and Actions Bar */}
-          <div className="mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search cabins by name, address or description..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <button className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
-                  <Filter size={16} />
-                  Filter
-                </button>
-                
-                <button 
-                  onClick={exportToCSV}
-                  className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-                >
-                  <Download size={16} />
-                  Export CSV
-                </button>
-                
-                <button className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
-                  <Printer size={16} />
-                  Print
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Cabins Table */}
+          {/* Cabins Grid */}
           {filteredCabins.length === 0 && !error ? (
-            <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="max-w-md mx-auto">
-                <div className="p-5 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-2xl inline-flex mb-5">
-                  <Building2 size={48} className="text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No Cabins Found</h3>
-                <p className="text-gray-600 mb-6">
-                  {searchTerm ? "No cabins match your search criteria." : "You haven't added any cabins yet."}
-                </p>
-                <button
-                  onClick={() => navigate("/add-cabin")}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg"
-                >
-                  Create Your First Cabin
-                </button>
-              </div>
+            <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+              <Building2 size={64} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">No cabins found</h3>
+              <p className="text-gray-500 mb-8">
+                {searchTerm ? "No cabins match your search criteria." : "You haven't added any cabins yet."}
+              </p>
+              <button
+                onClick={handleOpenAddModal}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-md"
+              >
+                <Plus size={20} />
+                Add New Cabin
+              </button>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              {/* Table Header */}
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-semibold text-gray-800">
-                    Cabin Listings <span className="text-blue-600">({filteredCabins.length})</span>
-                  </h2>
-                  <div className="text-sm text-gray-500">
-                    Showing {filteredCabins.length} of {cabins.length} cabins
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCabins.map((cabin) => (
+                <div
+                  key={cabin._id}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  {/* Image */}
+                  <div className="h-48 bg-gradient-to-r from-blue-100 to-indigo-100 relative">
+                    {cabin.images && cabin.images.length > 0 ? (
+                      <img
+                        src={`http://localhost:5050/${cabin.images[0]}`}
+                        alt={cabin.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&auto=format&fit=crop";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Building2 size={48} className="text-blue-400" />
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-              
-              {/* Table Container */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Cabin Details
-                      </th>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Capacity
-                      </th>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Price/Hour
-                      </th>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Amenities
-                      </th>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Created Date
-                      </th>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="py-3.5 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredCabins.map((cabin) => (
-                      <tr key={cabin._id} className="hover:bg-gray-50 transition-colors">
-                        {/* Cabin Details */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0">
-                              {cabin.images && cabin.images.length > 0 ? (
-                                <img
-                                  src={`http://localhost:5050/${cabin.images[0]}`}
-                                  alt={cabin.name}
-                                  className="w-12 h-12 rounded-lg object-cover"
-                                  onError={(e) => {
-                                    e.target.src = "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=200&auto=format&fit=crop";
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center">
-                                  <Building2 size={20} className="text-blue-400" />
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div>
-                              <div className="font-medium text-gray-900">{cabin.name}</div>
-                              <div className="flex items-center text-sm text-gray-500 mt-1">
-                                <MapPin size={12} className="mr-1 flex-shrink-0" />
-                                <span className="truncate max-w-[200px]">{cabin.address}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        
-                        {/* Capacity */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <Users size={16} className="text-gray-400" />
-                            <span className="font-medium">{cabin.capacity}</span>
-                            <span className="text-sm text-gray-500">persons</span>
-                          </div>
-                        </td>
-                        
-                        {/* Price */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-1.5">
-                            <IndianRupee size={16} className="text-gray-600" />
-                            <span className="font-bold text-gray-900">{cabin.price}</span>
-                            <span className="text-sm text-gray-500">/hour</span>
-                          </div>
-                        </td>
-                        
-                        {/* Amenities */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-2">
-                              {cabin.amenities && Object.entries(cabin.amenities)
-                                .filter(([key, value]) => value)
-                                .slice(0, 3)
-                                .map(([key]) => (
-                                  <div 
-                                    key={key} 
-                                    className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center"
-                                    title={getAmenityLabel(key)}
-                                  >
-                                    {getAmenityIcon(key)}
-                                  </div>
-                                ))}
-                            </div>
-                            
-                            {getAmenitiesCount(cabin.amenities) > 3 && (
-                              <div className="text-sm text-gray-500">
-                                +{getAmenitiesCount(cabin.amenities) - 3} more
-                              </div>
-                            )}
-                            
-                            {getAmenitiesCount(cabin.amenities) === 0 && (
-                              <span className="text-sm text-gray-400">No amenities</span>
-                            )}
-                          </div>
-                        </td>
-                        
-                        {/* Created Date */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <Calendar size={14} className="text-gray-400" />
-                            <span className="text-sm text-gray-700">{formatDate(cabin.createdAt)}</span>
-                          </div>
-                        </td>
-                        
-                        {/* Status */}
-                        <td className="py-4 px-6">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <CheckCircle size={10} className="mr-1" />
-                            Active
-                          </span>
-                        </td>
-                        
-                        {/* Actions */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleOpenViewModal(cabin)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                              title="View Details"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            
-                            <button
-                              onClick={() => handleOpenEditModal(cabin)}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-                              title="Edit Cabin"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            
-                            <button
-                              onClick={() => handleDeleteCabin(cabin._id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Delete Cabin"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              {/* Table Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="text-sm text-gray-500">
-                    Showing {filteredCabins.length} cabins
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <button className="px-3 py-1.5 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50">
-                      Previous
-                    </button>
-                    <span className="text-sm text-gray-700">Page 1 of 1</span>
-                    <button className="px-3 py-1.5 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50">
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Footer Info */}
-          {filteredCabins.length > 0 && (
-            <div className="mt-8">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Need Help?</h4>
-                    <p className="text-gray-600 text-sm">
-                      Contact support for assistance with cabin management, bookings, or pricing.
-                    </p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => navigate("/support")}
-                      className="px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      Contact Support
-                    </button>
-                    <button
-                      onClick={() => navigate("/add-cabin")}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-colors text-sm"
-                    >
-                      Add New Cabin
-                    </button>
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="font-semibold text-lg text-gray-900 mb-1">{cabin.name}</h3>
+                    
+                    <div className="flex items-center text-sm text-gray-500 mb-3">
+                      <MapPin size={14} className="mr-1 flex-shrink-0" />
+                      <span className="truncate">{cabin.address}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-1 text-sm">
+                        <Users size={16} className="text-gray-400" />
+                        <span className="font-medium">{cabin.capacity}</span>
+                        <span className="text-gray-500">seats</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm">
+                        <IndianRupee size={16} className="text-gray-400" />
+                        <span className="font-medium">₹{cabin.price}</span>
+                        <span className="text-gray-500">/hour</span>
+                      </div>
+                    </div>
+
+                    {/* Amenities */}
+                    {cabin.amenities && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {Object.entries(cabin.amenities)
+                          .filter(([key, value]) => value)
+                          .slice(0, 4)
+                          .map(([key]) => (
+                            <div
+                              key={key}
+                              className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-md text-xs text-blue-600"
+                            >
+                              {getAmenityIcon(key)}
+                              <span>{getAmenityLabel(key)}</span>
+                            </div>
+                          ))}
+                        {getAmenitiesCount(cabin.amenities) > 4 && (
+                          <span className="text-xs text-gray-500 flex items-center">
+                            +{getAmenitiesCount(cabin.amenities) - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => handleOpenViewModal(cabin)}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Eye size={16} />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditModal(cabin)}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      >
+                        <Edit size={16} />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCabin(cabin._id)}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* VIEW MODAL */}
+      {/* ADD CABIN MODAL - WITH API INTEGRATION */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setAddModalOpen(false)}></div>
+          
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+              {/* Header - Fixed */}
+              <div className="px-8 py-6 border-b border-gray-200 bg-white rounded-t-xl">
+                <h2 className="text-2xl font-bold text-gray-900">Add New Cabin</h2>
+                <p className="text-gray-500 text-sm mt-1">Create a new workspace listing</p>
+              </div>
+              
+              {/* Content - Scrollable */}
+              <div className="p-8 overflow-y-auto flex-1">
+                <form onSubmit={handleAddCabin} className="space-y-6">
+                  {/* BUILDING NAME */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      BUILDING NAME
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={addFormData.name}
+                      onChange={handleAddChange}
+                      placeholder="e.g. Tech Hub Alpha"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                  
+                  {/* ADDRESS */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      ADDRESS
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={addFormData.address}
+                      onChange={handleAddChange}
+                      placeholder="e.g. Floor 4, Suite 10"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                  
+                  {/* CABIN SPEC */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      CABIN SPEC
+                    </label>
+                    <input
+                      type="text"
+                      name="description"
+                      value={addFormData.description}
+                      onChange={handleAddChange}
+                      placeholder="e.g. Private Office B"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                  
+                  {/* CAPACITY */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      CAPACITY
+                    </label>
+                    <input
+                      type="number"
+                      name="capacity"
+                      value={addFormData.capacity}
+                      onChange={handleAddChange}
+                      placeholder="Seats"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                  
+                  {/* PRICE PER HOUR */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      PRICE PER HOUR (£)
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={addFormData.price}
+                      onChange={handleAddChange}
+                      placeholder="e.g. 500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                  
+                  {/* INCLUDED AMENITIES */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                      INCLUDED AMENITIES
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { key: "wifi", label: "Wi-Fi" },
+                        { key: "parking", label: "Parking" },
+                        { key: "lockers", label: "Lockers" },
+                        { key: "privateWashroom", label: "Private" },
+                        { key: "secureAccess", label: "Security" },
+                        { key: "comfortSeating", label: "Comfort" },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => toggleAddAmenity(item.key)}
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
+                            addFormData.amenities[item.key]
+                              ? "bg-blue-50 border-blue-300 text-blue-700"
+                              : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          <span className="font-medium">{item.label}</span>
+                          {addFormData.amenities[item.key] && (
+                            <span className="text-blue-600">✓</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* IMAGES UPLOAD */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                      CABIN IMAGES
+                    </label>
+                    
+                    {/* Image Previews */}
+                    {imagePreviews.length > 0 && (
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        {imagePreviews.map((preview, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Upload Button */}
+                    <label className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                      <Upload size={20} className="text-gray-400" />
+                      <span className="text-gray-600">Upload Images</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">
+                      You can select multiple images. Supported formats: JPG, PNG, GIF
+                    </p>
+                  </div>
+                  
+                  {/* SPACE DESCRIPTION */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      SPACE DESCRIPTION
+                    </label>
+                    <textarea
+                      name="description"
+                      value={addFormData.description}
+                      onChange={handleAddChange}
+                      placeholder="Share details about this unique workspace..."
+                      rows="4"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                      required
+                    />
+                  </div>
+                </form>
+              </div>
+              
+              {/* Footer - Fixed with GRADIENT BUTTON */}
+              <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAddModalOpen(false)}
+                    className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddCabin}
+                    disabled={addLoading}
+                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {addLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Adding...
+                      </>
+                    ) : (
+                      'Create Cabin'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW MODAL - with fixed scroll */}
       {viewModalOpen && selectedCabin && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setViewModalOpen(false)}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setViewModalOpen(false)}></div>
           
-          {/* Modal */}
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-              {/* Modal Header */}
-              <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-700 to-indigo-800 px-8 py-6 text-white">
+            <div className="relative bg-white rounded-xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+              {/* Header - Fixed */}
+              <div className="px-8 py-6 border-b border-gray-200 bg-white rounded-t-xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Building2 size={28} className="text-white" />
-                    <div>
-                      <h2 className="text-2xl font-bold">{selectedCabin.name}</h2>
-                      <p className="text-blue-100 text-sm mt-1">Cabin Details</p>
-                    </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{selectedCabin.name}</h2>
+                    <p className="text-gray-500 text-sm mt-1">Cabin Details</p>
                   </div>
                   <button
                     onClick={() => setViewModalOpen(false)}
-                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <X size={24} />
+                    <X size={20} className="text-gray-500" />
                   </button>
                 </div>
               </div>
               
-              {/* Modal Content */}
-              <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left Column - Images & Basic Info */}
-                  <div className="space-y-6">
-                    {/* Images */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <ImageIcon size={20} className="text-blue-600" />
-                        Photos
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {selectedCabin.images && selectedCabin.images.length > 0 ? (
-                          selectedCabin.images.slice(0, 4).map((img, index) => (
-                            <div key={index} className="aspect-square rounded-xl overflow-hidden border border-gray-200">
-                              <img
-                                src={`http://localhost:5050/${img}`}
-                                alt={`${selectedCabin.name} - ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src = "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&auto=format&fit=crop";
-                                }}
-                              />
-                            </div>
-                          ))
-                        ) : (
-                          <div className="col-span-2 aspect-video bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
-                            <ImageIcon size={48} className="text-blue-400" />
-                          </div>
-                        )}
+              {/* Content - Scrollable */}
+              <div className="p-8 overflow-y-auto flex-1">
+                <div className="space-y-6">
+                  {/* Image */}
+                  <div className="h-48 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg overflow-hidden">
+                    {selectedCabin.images && selectedCabin.images.length > 0 ? (
+                      <img
+                        src={`http://localhost:5050/${selectedCabin.images[0]}`}
+                        alt={selectedCabin.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Building2 size={48} className="text-blue-400" />
                       </div>
+                    )}
+                  </div>
+                  
+                  {/* Details */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Address</p>
+                      <p className="font-medium text-gray-900">{selectedCabin.address}</p>
                     </div>
-                    
-                    {/* Basic Info */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                          <MapPin size={20} className="text-blue-600 mt-0.5" />
-                          <div>
-                            <p className="text-sm text-gray-500">Address</p>
-                            <p className="font-medium">{selectedCabin.address}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <Users size={20} className="text-green-600" />
-                          <div>
-                            <p className="text-sm text-gray-500">Capacity</p>
-                            <p className="font-medium">{selectedCabin.capacity} persons</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <IndianRupee size={20} className="text-amber-600" />
-                          <div>
-                            <p className="text-sm text-gray-500">Price per hour</p>
-                            <p className="font-medium">₹{selectedCabin.price}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <Calendar size={20} className="text-purple-600" />
-                          <div>
-                            <p className="text-sm text-gray-500">Created Date</p>
-                            <p className="font-medium">{formatDate(selectedCabin.createdAt)}</p>
-                          </div>
-                        </div>
-                      </div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Capacity</p>
+                      <p className="font-medium text-gray-900">{selectedCabin.capacity} seats</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</p>
+                      <p className="font-medium text-gray-900">₹{selectedCabin.price}/hour</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Added on</p>
+                      <p className="font-medium text-gray-900">{formatDate(selectedCabin.createdAt)}</p>
                     </div>
                   </div>
                   
-                  {/* Right Column - Description & Amenities */}
-                  <div className="space-y-6">
-                    {/* Description */}
+                  {/* Description */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Description</p>
+                    <p className="text-gray-700">{selectedCabin.description}</p>
+                  </div>
+                  
+                  {/* Amenities */}
+                  {selectedCabin.amenities && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Description</h3>
-                      <div className="bg-gray-50 rounded-xl p-5">
-                        <p className="text-gray-700 whitespace-pre-line">{selectedCabin.description}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Amenities */}
-                    {selectedCabin.amenities && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Amenities</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                          {Object.entries(selectedCabin.amenities).map(([key, value]) => (
-                            <div 
-                              key={key} 
-                              className={`flex items-center gap-3 p-3 rounded-lg ${value ? 'bg-green-50 border border-green-200' : 'bg-gray-100'}`}
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Amenities</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(selectedCabin.amenities)
+                          .filter(([key, value]) => value)
+                          .map(([key]) => (
+                            <div
+                              key={key}
+                              className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg"
                             >
-                              <div className={`p-2 rounded ${value ? 'bg-green-100' : 'bg-gray-200'}`}>
-                                {getAmenityIcon(key)}
-                              </div>
-                              <div>
-                                <p className={`font-medium ${value ? 'text-green-800' : 'text-gray-500'}`}>
-                                  {getAmenityLabel(key)}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {value ? 'Available' : 'Not Available'}
-                                </p>
-                              </div>
-                              {value && (
-                                <CheckCircle size={16} className="ml-auto text-green-600" />
-                              )}
+                              {getAmenityIcon(key)}
+                              <span className="text-sm text-blue-700">{getAmenityLabel(key)}</span>
                             </div>
                           ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Cabin ID */}
-                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Building2 size={20} className="text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-blue-600">Cabin ID</p>
-                          <p className="font-mono text-sm">{selectedCabin._id}</p>
-                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
               
-              {/* Modal Footer */}
-              <div className="sticky bottom-0 bg-gray-50 px-8 py-5 border-t border-gray-200">
+              {/* Footer - Fixed */}
+              <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
                 <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setViewModalOpen(false)}
@@ -912,41 +1009,36 @@ function MyCabins() {
         </div>
       )}
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL - with fixed scroll */}
       {editModalOpen && selectedCabin && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setEditModalOpen(false)}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setEditModalOpen(false)}></div>
           
-          {/* Modal */}
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
-              {/* Modal Header */}
-              <div className="sticky top-0 z-10 bg-gradient-to-r from-green-700 to-emerald-800 px-8 py-6 text-white">
+            <div className="relative bg-white rounded-xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+              {/* Header - Fixed */}
+              <div className="px-8 py-6 border-b border-gray-200 bg-white rounded-t-xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Edit size={28} className="text-white" />
-                    <div>
-                      <h2 className="text-2xl font-bold">Edit Cabin</h2>
-                      <p className="text-green-100 text-sm mt-1">Update cabin information</p>
-                    </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Edit Cabin</h2>
+                    <p className="text-gray-500 text-sm mt-1">Update cabin information</p>
                   </div>
                   <button
                     onClick={() => setEditModalOpen(false)}
-                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <X size={24} />
+                    <X size={20} className="text-gray-500" />
                   </button>
                 </div>
               </div>
               
-              {/* Modal Content */}
-              <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
-                <form className="space-y-6">
-                  {/* Cabin Name */}
+              {/* Content - Scrollable */}
+              <div className="p-8 overflow-y-auto flex-1">
+                <div className="space-y-6">
+                  {/* BUILDING NAME */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cabin Name
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      BUILDING NAME
                     </label>
                     <input
                       type="text"
@@ -957,10 +1049,10 @@ function MyCabins() {
                     />
                   </div>
                   
-                  {/* Address */}
+                  {/* ADDRESS */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      ADDRESS
                     </label>
                     <input
                       type="text"
@@ -971,39 +1063,85 @@ function MyCabins() {
                     />
                   </div>
                   
-                  {/* Capacity & Price */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Capacity (persons)
-                      </label>
-                      <input
-                        type="number"
-                        name="capacity"
-                        value={editFormData.capacity}
-                        onChange={handleEditChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Price per hour (₹)
-                      </label>
-                      <input
-                        type="number"
-                        name="price"
-                        value={editFormData.price}
-                        onChange={handleEditChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                      />
+                  {/* CABIN SPEC */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      CABIN SPEC
+                    </label>
+                    <input
+                      type="text"
+                      name="description"
+                      value={editFormData.description}
+                      onChange={handleEditChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    />
+                  </div>
+                  
+                  {/* CAPACITY */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      CAPACITY
+                    </label>
+                    <input
+                      type="number"
+                      name="capacity"
+                      value={editFormData.capacity}
+                      onChange={handleEditChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    />
+                  </div>
+                  
+                  {/* PRICE PER HOUR */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      PRICE PER HOUR (£)
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={editFormData.price}
+                      onChange={handleEditChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    />
+                  </div>
+                  
+                  {/* INCLUDED AMENITIES */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                      INCLUDED AMENITIES
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { key: "wifi", label: "Wi-Fi" },
+                        { key: "parking", label: "Parking" },
+                        { key: "lockers", label: "Lockers" },
+                        { key: "privateWashroom", label: "Private" },
+                        { key: "secureAccess", label: "Security" },
+                        { key: "comfortSeating", label: "Comfort" },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => toggleEditAmenity(item.key)}
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
+                            editFormData.amenities[item.key]
+                              ? "bg-green-50 border-green-300 text-green-700"
+                              : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          <span className="font-medium">{item.label}</span>
+                          {editFormData.amenities[item.key] && (
+                            <span className="text-green-600">✓</span>
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   
-                  {/* Description */}
+                  {/* SPACE DESCRIPTION */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
+                    <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      SPACE DESCRIPTION
                     </label>
                     <textarea
                       name="description"
@@ -1013,80 +1151,32 @@ function MyCabins() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-none"
                     />
                   </div>
-                  
-                  {/* Amenities */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Amenities
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {[
-                        { key: "wifi", label: "Wi-Fi", icon: <Wifi size={18} /> },
-                        { key: "parking", label: "Parking", icon: <Car size={18} /> },
-                        { key: "lockers", label: "Lockers", icon: <Lock size={18} /> },
-                        { key: "privateWashroom", label: "Private Washroom", icon: <Bath size={18} /> },
-                        { key: "secureAccess", label: "Secure Access", icon: <Shield size={18} /> },
-                        { key: "comfortSeating", label: "Comfort Seating", icon: <Sofa size={18} /> },
-                      ].map((item) => (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => toggleEditAmenity(item.key)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
-                            editFormData.amenities[item.key]
-                              ? "border-green-500 bg-green-50 text-green-700"
-                              : "border-gray-300 text-gray-600 hover:border-gray-400"
-                          }`}
-                        >
-                          {item.icon}
-                          <span>{item.label}</span>
-                          {editFormData.amenities[item.key] && (
-                            <CheckCircle size={16} className="ml-auto text-green-600" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </form>
+                </div>
               </div>
               
-              {/* Modal Footer */}
-              <div className="sticky bottom-0 bg-gray-50 px-8 py-5 border-t border-gray-200">
-                <div className="flex justify-between gap-3">
+              {/* Footer - Fixed with GRADIENT BUTTON */}
+              <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setEditModalOpen(false)}
                     className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setEditModalOpen(false);
-                        handleOpenViewModal(selectedCabin);
-                      }}
-                      className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      onClick={handleUpdateCabin}
-                      disabled={editLoading}
-                      className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {editLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle size={18} />
-                          Update Cabin
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleUpdateCabin}
+                    disabled={editLoading}
+                    className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {editLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      'Update Cabin'
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

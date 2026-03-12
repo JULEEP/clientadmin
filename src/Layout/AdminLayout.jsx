@@ -62,33 +62,127 @@ const AdminLayout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={isCollapsed}
-        isMobile={isMobile}
-        onLinkClick={handleSidebarClose} // This will close sidebar on ALL devices
-      />
-
-      {/* Main Content - Fixed space calculation */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isMobile
-          ? 'ml-0'
-          : isCollapsed
-            ? 'lg:ml-16'
-            : 'lg:ml-60'
-        }`}>
-        {/* Navbar */}
-        <Navbar
-          setIsCollapsed={setIsCollapsed}
+    <>
+      <div className="flex h-screen overflow-hidden bg-gray-100 admin-layout">
+        {/* Sidebar */}
+        <Sidebar
           isCollapsed={isCollapsed}
+          isMobile={isMobile}
+          onLinkClick={handleSidebarClose}
+          setIsCollapsed={setIsCollapsed}
         />
 
-        {/* Page Content - Remove extra padding if needed */}
-        <main className="flex-1 p-0 overflow-auto bg-gray-100 md:p-2">
-          {children}
-        </main>
+        {/* Main Content - Fixed space calculation */}
+        <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 main-content ${
+          isMobile 
+            ? 'ml-0' 
+            : isCollapsed 
+              ? 'lg:ml-16' 
+              : 'lg:ml-52' /* Changed from ml-60 to ml-52 to match sidebar width */
+        }`}>
+          {/* Navbar */}
+          <Navbar
+            setIsCollapsed={setIsCollapsed}
+            isCollapsed={isCollapsed}
+          />
+
+          {/* Page Content */}
+          <main className="flex-1 p-0 overflow-auto bg-gray-100 md:p-2">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+
+      {/* CSS to fix white gap issue */}
+      <style jsx>{`
+        /* Fix for the white gap issue */
+        .admin-layout {
+          margin: 0;
+          padding: 0;
+          background-color: #f3f4f6; /* bg-gray-100 */
+          position: relative;
+          width: 100vw;
+          max-width: 100%;
+        }
+
+        /* Ensure no white gaps on body */
+        :global(body) {
+          margin: 0;
+          padding: 0;
+          overflow-x: hidden;
+          background-color: #f3f4f6;
+        }
+
+        :global(#root) {
+          min-height: 100vh;
+          background-color: #f3f4f6;
+        }
+
+        /* Main content area fix */
+        .main-content {
+          background-color: #f3f4f6;
+          position: relative;
+          width: 100%;
+        }
+
+        /* Sidebar transition optimization */
+        :global(.fixed.top-0.left-0) {
+          will-change: transform, width;
+          backface-visibility: hidden;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        /* Remove any unwanted margins/padding */
+        * {
+          box-sizing: border-box;
+        }
+
+        /* Mobile specific fixes */
+        @media (max-width: 767px) {
+          .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+          }
+          
+          .admin-layout {
+            overflow-x: hidden;
+          }
+        }
+
+        /* Desktop specific fixes */
+        @media (min-width: 768px) {
+          .main-content {
+            transition: margin-left 0.3s ease-in-out;
+          }
+        }
+
+        /* Fix for the white space when sidebar is collapsed */
+        .lg\\:ml-16 {
+          margin-left: 4rem !important; /* 16 = 4rem = 64px */
+        }
+
+        .lg\\:ml-52 {
+          margin-left: 13rem !important; /* 52 = 13rem = 208px */
+        }
+
+        /* Ensure background color consistency */
+        .bg-gray-100 {
+          background-color: #f3f4f6 !important;
+        }
+
+        /* Fix for any potential overflow issues */
+        .overflow-auto {
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Smooth transitions */
+        .transition-all {
+          transition-property: all;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          transition-duration: 300ms;
+        }
+      `}</style>
+    </>
   );
 };
 

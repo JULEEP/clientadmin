@@ -160,8 +160,8 @@ function AddCabin() {
       });
       setImages([]);
       
-      // Navigate to spaces page or user's cabins
-      navigate("/my-spaces");
+      // Navigate to my cabins page
+      navigate("/my-cabins");
       
     } catch (err) {
       console.error("Error adding cabin:", err);

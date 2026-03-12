@@ -1,71 +1,148 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
-import { FaChevronDown, FaHeartbeat, FaClock, FaBuilding, FaUsers, FaCalendarAlt, FaFileAlt, FaMapMarkerAlt, FaUserMd } from "react-icons/fa";
+import { FaChevronDown } from "react-icons/fa";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Clock, 
-  Calendar, 
-  FileText, 
-  MapPin, 
-  LogOut, 
-  Settings,
-  ChevronRight,
-  Home,
-  Briefcase,
-  Activity,
-  Heart,
-  Building2,
-  Coffee,
-  Zap,
-  Sparkles,
-  Shield,
-  Award,
-  UserCheck,
-  UserPlus,
-  FileCheck,
-  ClipboardList,
-  FolderOpen,
-  ChevronDown,
-  DollarSign
-} from "lucide-react";
 
-const Sidebar = ({ isCollapsed, isMobile, onLinkClick }) => {
+const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [openSubDropdown, setOpenSubDropdown] = useState({}); // For nested dropdowns like Recruitment
+  const [openSubDropdown, setOpenSubDropdown] = useState({});
+  const [currentPage, setCurrentPage] = useState("Dashboard");
+  const [activeItem, setActiveItem] = useState("/dashboard");
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [userRole, setUserRole] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get selected product and user role from localStorage on component mount
+  // Get user role and selected product
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     setUserRole(role);
     
-    // For client, get the selected product from localStorage
     if (role === 'client') {
-      // Try to get from location state first
       if (location.state?.selectedProduct) {
         setSelectedProduct(location.state.selectedProduct);
         localStorage.setItem('selectedProduct', location.state.selectedProduct);
       } else {
-        // Fallback to localStorage
         const savedProduct = localStorage.getItem('selectedProduct');
         setSelectedProduct(savedProduct);
       }
     }
   }, [location]);
 
+  // Detect active page
+  useEffect(() => {
+    const path = location.pathname;
+    setActiveItem(path);
+    setCurrentPage(getPageNameFromPath(path));
+  }, [location]);
+
+  const getPageNameFromPath = (path) => {
+    const pathMap = {
+      // Common
+      "/dashboard": "Dashboard",
+      
+      // Attendance Section
+      "/attendance-dashboard": "Attendance Dashboard",
+      "/employeelist": "Employees",
+      "/attedancesummary": "Attendance Summary",
+      "/attendancelist": "Attendance Records",
+      "/today-attendance": "Today Attendance",
+      "/absent-today": "Absent Today",
+      "/leavelist": "Leaves",
+      "/payroll": "Payroll",
+      "/permissions": "Permissions",
+      "/all-expensives": "Expenses",
+      "/shift": "Shifts",
+      "/shiftlist": "Shifts",
+      "/locationlist": "Locations",
+      
+      // Coworking Section
+      "/coworking-dashboard": "Coworking Dashboard",
+      "/add-cabin": "Add Cabin",
+      "/all-cabins": "All Cabins",
+      "/all-bookings": "All Bookings",
+      "/my-bookings": "My Bookings",
+      "/coworking-members": "Members",
+      "/coworking-payments": "Payments",
+      "/coworking-reports": "Reports",
+      "/coworking-settings": "Settings",
+      
+      // BMI/Health Section
+      "/bmi-dashboard": "BMI Dashboard",
+      "/health-camps": "Health Camps",
+      "/camp-registrations": "Camp Registrations",
+      "/camp-attendance": "Camp Attendance",
+      "/bmi-records": "BMI Records",
+      "/health-reports": "Health Reports",
+      "/wellness-programs": "Wellness Programs",
+      "/health-tips": "Health Tips",
+      
+      // Other sections
+      "/useractivity": "User Activity",
+      "/useraccess": "User Access",
+      "/jobpost": "Job Posts",
+      "/addemployee": "Add Employee",
+      "/editemployee": "Edit Employee",
+      "/departmentdashboard": "Departments",
+      "/roledashboard": "Roles",
+      "/addlocation": "Add Location",
+      "/empmanagement": "Employee Management",
+      "/job-applicants": "Job Applicants",
+      "/score": "Score Board",
+      "/assessment-manager": "Assessments",
+      "/documents": "Documents",
+      "/personaldocuments": "Documents",
+      "/leaves-report": "Leaves Report",
+      "/recruitment-dashboard": "Recruitment Dashboard",
+      "/employee-journey": "Employee Journey"
+    };
+    return pathMap[path] || "Dashboard";
+  };
+
+  // Desktop Hover Expand
+  const handleMouseEnterSidebar = () => {
+    if (!isMobile && setIsCollapsed) {
+      setIsCollapsed(false);
+    }
+  };
+
+  const handleMouseLeaveSidebar = () => {
+    if (!isMobile && setIsCollapsed) {
+      if (!openDropdown) {
+        setIsCollapsed(true);
+      }
+    }
+  };
+
+  // Tooltip position
+  const handleMouseMove = (e, itemName) => {
+    setTooltipPosition({
+      x: e.clientX + 15,
+      y: e.clientY - 10,
+    });
+    setHoveredItem(itemName);
+  };
+
   const toggleDropdown = (e, name) => {
     e.stopPropagation();
-    setOpenDropdown(openDropdown === name ? null : name);
+    e.preventDefault();
+    
+    if (openDropdown !== name) {
+      if (!isMobile && isCollapsed && setIsCollapsed) {
+        setIsCollapsed(false);
+      }
+      setOpenDropdown(name);
+    } else {
+      setOpenDropdown(null);
+    }
   };
 
   const toggleSubDropdown = (e, parentName, subName) => {
     e.stopPropagation();
+    e.preventDefault();
     setOpenSubDropdown(prev => ({
       ...prev,
       [parentName]: {
@@ -75,12 +152,6 @@ const Sidebar = ({ isCollapsed, isMobile, onLinkClick }) => {
     }));
   };
 
-  const handleAnyClick = () => {
-    if (onLinkClick) onLinkClick();
-    setOpenDropdown(null);
-    setOpenSubDropdown({});
-  };
-
   const handleLogout = async () => {
     try {
       await axios.post(
@@ -88,426 +159,586 @@ const Sidebar = ({ isCollapsed, isMobile, onLinkClick }) => {
         {},
         { withCredentials: true }
       );
-      localStorage.clear();
-      navigate("/admin-login");
-    } catch (error) {
-      localStorage.clear();
-      navigate("/admin-login");
-    }
+    } catch (error) {}
+    localStorage.clear();
+    navigate("/admin-login");
   };
 
-  // All sections defined
-  const attendanceSection = {
-    icon: <Clock className="w-5 h-5" />,
-    name: "Attendance",
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-50",
-    textColor: "text-blue-600",
-    dropdown: [
-      { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { name: "Employees", path: "/employeelist", icon: <Users className="w-4 h-4" /> },
-      { name: "Attendance Summary", path: "/attedancesummary", icon: <FileText className="w-4 h-4" /> },
-      { name: "Attendance Records", path: "/attendancelist", icon: <Clock className="w-4 h-4" /> },
-      { name: "Today Attendance", path: "/today-attendance", icon: <Calendar className="w-4 h-4" /> },
-      { name: "Absent Today", path: "/absent-today", icon: <Users className="w-4 h-4" /> },
-      { name: "Leave Management", path: "/leavelist", icon: <Calendar className="w-4 h-4" /> },
-      { name: "Payroll", path: "/payroll", icon: <FileText className="w-4 h-4" /> },
-      { name: "Reports", path: "/leaves-report", icon: <FileText className="w-4 h-4" /> },
-      { name: "User Activity", path: "/useractivity", icon: <FileText className="w-4 h-4" /> },
-      { name: "User Access Mang", path: "/useraccess", icon: <FileText className="w-4 h-4" /> },
-      { name: "Locations", path: "/locationlist", icon: <MapPin className="w-4 h-4" /> },
-      { name: "Shifts", path: "/shiftlist", icon: <Clock className="w-4 h-4" /> },
-            { name: "Expensives", path: "/all-expensives", icon: <DollarSign className="w-4 h-4" /> },
+  const isActive = (path) => activeItem === path;
 
-      // Recruitment Section as a submenu inside Attendance
-     { 
-  name: "Recruitment", 
-  icon: <Briefcase className="w-4 h-4" />,
-  hasSubmenu: true,
-  submenu: [
-    { name: "Dashboard", path: "/recruitment-dashboard", icon: <LayoutDashboard className="w-3 h-3" /> },
-    { name: "Job Posts", path: "/jobpost", icon: <FileText className="w-3 h-3" /> },
-    { name: "Job Applicants", path: "/job-applicants", icon: <Users className="w-3 h-3" /> },
-    { name: "Score Board", path: "/score", icon: <ClipboardList className="w-3 h-3" /> },
-    { name: "Assessments", path: "/assessment-manager", icon: <FileCheck className="w-3 h-3" /> },
-    { name: "Documents", path: "/personaldocuments", icon: <FolderOpen className="w-3 h-3" /> },
-    { name: "Employee Journey", path: "/employee-journey", icon: <UserCheck className="w-3 h-3" /> },
-  ]
-},
-    ],
-  };
+  const isDropdownActive = (dropdownItems) =>
+    dropdownItems?.some((item) => {
+      if (item.submenu) {
+        return item.submenu.some(sub => isActive(sub.path));
+      }
+      return isActive(item.path);
+    });
 
-  const bmiSection = {
-    icon: <Heart className="w-5 h-5" />,
-    name: "BMI & Health",
-    color: "from-red-500 to-pink-500",
-    bgColor: "bg-red-50",
-    textColor: "text-red-600",
-    dropdown: [
-      { name: "BMI Dashboard", path: "/bmi-dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { name: "Patient Records", path: "/add-patient", icon: <Users className="w-4 h-4" /> },
-      { name: "Health Camps", path: "/camp", icon: <Users className="w-4 h-4" /> },
-    ],
-  };
-
-  const coworkingSection = {
-    icon: <Building2 className="w-5 h-5" />,
-    name: "Co-Working",
-    color: "from-purple-500 to-indigo-500",
-    bgColor: "bg-purple-50",
-    textColor: "text-purple-600",
-    dropdown: [
-      { name: "Add Space", path: "/add-cabin", icon: <Home className="w-4 h-4" /> },
-      { name: "My Spaces", path: "/mycabins", icon: <Building2 className="w-4 h-4" /> },
-      { name: "All Bookings", path: "/allbookings", icon: <Calendar className="w-4 h-4" /> },
-    ],
-  };
-
-  // All sections for admin
-  const allSections = [attendanceSection, bmiSection, coworkingSection];
-
-  // Filter sections based on selected product for client
-  const getFilteredSections = () => {
+  // Dynamic elements based on selected product
+  const getElements = () => {
+    // If client with selected product, show product-specific sidebar
     if (userRole === 'client' && selectedProduct) {
-      const productMap = {
-        'attendance': attendanceSection,
-        'coworking': coworkingSection,
-        'bmi': bmiSection,
-        'health': bmiSection
-      };
-      const selectedSection = productMap[selectedProduct.toLowerCase()];
-      return selectedSection ? [selectedSection] : [];
+      switch(selectedProduct) {
+        case 'attendance':
+          return [
+            {
+              icon: <i className="ri-dashboard-fill"></i>,
+              name: "Dashboard",
+              path: "/attendance-dashboard",
+            },
+            {
+              icon: <i className="ri-user-fill"></i>,
+              name: "Employees",
+              path: "/employeelist",
+            },
+            {
+              icon: <i className="ri-calendar-check-fill"></i>,
+              name: "Attendance",
+              dropdown: [
+                { name: "Attendance Summary", path: "/attedancesummary" },
+                { name: "Attendance Records", path: "/attendancelist" },
+                { name: "Today Attendance", path: "/today-attendance" },
+                { name: "Absent Today", path: "/absent-today" },
+              ],
+            },
+            {
+              icon: <i className="ri-calendar-close-fill"></i>,
+              name: "Leaves",
+              path: "/leavelist",
+            },
+            {
+              icon: <i className="ri-shield-keyhole-fill"></i>,
+              name: "Permissions",
+              path: "/permissions",
+            },
+            {
+              icon: <i className="ri-money-dollar-box-fill"></i>,
+              name: "Payroll",
+              path: "/payroll",
+            },
+            {
+              icon: <i className="ri-money-dollar-box-fill"></i>,
+              name: "Expensives",
+              path: "/all-expensives"
+            },
+            {
+              icon: <i className="ri-time-fill"></i>,
+              name: "Shifts",
+              path: "/shift",
+            },
+            {
+              icon: <i className="ri-map-pin-2-fill"></i>,
+              name: "Locations",
+              path: "/locationlist",
+            },
+            {
+              icon: <i className="ri-logout-box-r-line"></i>,
+              name: "Logout",
+              action: handleLogout,
+            },
+          ];
+          
+        case 'coworking':
+          return [
+            {
+              icon: <i className="ri-dashboard-fill"></i>,
+              name: "Dashboard",
+              path: "/coworking-dashboard",
+            },
+            {
+              icon: <i className="ri-building-4-fill"></i>,
+              name: "Cabins",
+              dropdown: [
+                { name: "All Cabins", path: "/mycabins" },
+              ],
+            },
+            {
+              icon: <i className="ri-calendar-book-fill"></i>,
+              name: "Bookings",
+              dropdown: [
+                { name: "All Bookings", path: "/all-bookings" },
+              ],
+            },
+            {
+              icon: <i className="ri-logout-box-r-line"></i>,
+              name: "Logout",
+              action: handleLogout,
+            },
+          ];
+          
+        case 'bmi':
+          return [
+            {
+              icon: <i className="ri-dashboard-fill"></i>,
+              name: "Dashboard",
+              path: "/bmi-dashboard",
+            },
+            {
+              icon: <i className="ri-heart-pulse-fill"></i>,
+              name: "Health Camps",
+              dropdown: [
+                { name: "All Camps", path: "/health-camps" },
+                { name: "Registrations", path: "/camp-registrations" },
+                { name: "Camp Attendance", path: "/camp-attendance" },
+              ],
+            },
+            {
+              icon: <i className="ri-body-scan-fill"></i>,
+              name: "BMI Records",
+              path: "/bmi-records",
+            },
+            {
+              icon: <i className="ri-file-chart-fill"></i>,
+              name: "Health Reports",
+              path: "/health-reports",
+            },
+            {
+              icon: <i className="ri-leaf-fill"></i>,
+              name: "Wellness",
+              dropdown: [
+                { name: "Wellness Programs", path: "/wellness-programs" },
+                { name: "Health Tips", path: "/health-tips" },
+              ],
+            },
+            {
+              icon: <i className="ri-team-fill"></i>,
+              name: "Camp Members",
+              path: "/camp-members",
+            },
+            {
+              icon: <i className="ri-logout-box-r-line"></i>,
+              name: "Logout",
+              action: handleLogout,
+            },
+          ];
+          
+        default:
+          return [];
+      }
     }
-    return allSections;
+    
+    // Default full sidebar for admin/employee
+    return [
+      {
+        icon: <i className="ri-dashboard-fill"></i>,
+        name: "Dashboard",
+        path: "/dashboard",
+      },
+      {
+        icon: <i className="ri-user-fill"></i>,
+        name: "Employees",
+        path: "/employeelist",
+      },
+      {
+        icon: <i className="ri-calendar-check-fill"></i>,
+        name: "Attendance",
+        dropdown: [
+          { name: "Attendance Summary", path: "/attedancesummary" },
+          { name: "Attendance Records", path: "/attendancelist" },
+          { name: "Today Attendance", path: "/today-attendance" },
+          { name: "Absent Today", path: "/absent-today" },
+        ],
+      },
+      {
+        icon: <i className="ri-calendar-close-fill"></i>,
+        name: "Leaves",
+        path: "/leavelist",
+      },
+      {
+        icon: <i className="ri-shield-keyhole-fill"></i>,
+        name: "Permissions",
+        path: "/permissions",
+      },
+      {
+        icon: <i className="ri-money-dollar-box-fill"></i>,
+        name: "Payroll",
+        path: "/payroll",
+      },
+      {
+        icon: <i className="ri-money-dollar-box-fill"></i>,
+        name: "Expensives",
+        path: "/all-expensives"
+      },
+      {
+        icon: <i className="ri-history-fill"></i>,
+        name: "User Activity",
+        path: "/useractivity",
+      },
+      {
+        icon: <i className="ri-shield-user-fill"></i>,
+        name: "User Access",
+        path: "/useraccess",
+      },
+      {
+        icon: <i className="ri-briefcase-fill"></i>,
+        name: "Recruitment",
+        dropdown: [
+          { name: "Dashboard", path: "/recruitment-dashboard" },
+          { name: "Job Posts", path: "/jobpost" },
+          { name: "Job Applicants", path: "/job-applicants" },
+          { name: "Score Board", path: "/score" },
+          { name: "Assessments", path: "/assessment-manager" },
+          { name: "Documents", path: "/personaldocuments" },
+          { name: "Employee Journey", path: "/employee-journey" },
+        ],
+      },
+      {
+        icon: <i className="ri-map-pin-2-fill"></i>,
+        name: "Locations",
+        path: "/locationlist",
+      },
+      {
+        icon: <i className="ri-time-fill"></i>,
+        name: "Shifts",
+        path: "/shift",
+      },
+      {
+        icon: <i className="ri-logout-box-r-line"></i>,
+        name: "Logout",
+        action: handleLogout,
+      },
+    ];
   };
 
-  const sectionsToShow = getFilteredSections();
+  const elements = getElements();
 
-  // Logout element
-  const logoutElement = {
-    icon: <LogOut className="w-5 h-5" />,
-    name: "Logout",
-    action: handleLogout,
+  // Handle item click
+  const handleItemClick = (path, action) => {
+    if (path) {
+      navigate(path);
+    }
+    
+    if (action) {
+      action();
+    }
+    
+    setOpenDropdown(null);
+    setOpenSubDropdown({});
+    
+    if (onLinkClick) {
+      onLinkClick();
+    }
+    
+    setHoveredItem(null);
+  };
+
+  // Handle dropdown item click
+  const handleDropdownItemClick = (path) => {
+    navigate(path);
+    setOpenDropdown(null);
+    setOpenSubDropdown({});
+    
+    if (onLinkClick) {
+      onLinkClick();
+    }
+  };
+
+  // Get header title based on selected product
+  const getHeaderTitle = () => {
+    if (isCollapsed && !isMobile) {
+      switch(selectedProduct) {
+        case 'attendance': return 'AM';
+        case 'coworking': return 'CW';
+        case 'bmi': return 'BM';
+        default: return 'TM';
+      }
+    }
+    
+    switch(selectedProduct) {
+      case 'attendance': return 'Attendance Management';
+      case 'coworking': return 'Coworking Space';
+      case 'bmi': return 'BMI & Health';
+      default: return 'Team Management';
+    }
+  };
+
+  // Get footer text
+  const getFooterText = () => {
+    switch(selectedProduct) {
+      case 'attendance': return 'Attendance v2.0';
+      case 'coworking': return 'Coworking v1.0';
+      case 'bmi': return 'Health v1.0';
+      default: return 'System v2.0';
+    }
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isMobile && !isCollapsed && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.4 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 bg-black"
-          onClick={handleAnyClick}
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-40"
+          onClick={() => {
+            if (onLinkClick) onLinkClick();
+            setOpenDropdown(null);
+            setOpenSubDropdown({});
+          }}
         />
       )}
 
-      {/* Sidebar */}
-      <motion.div
-        initial={false}
-        animate={{
-          width: isMobile ? (isCollapsed ? 0 : 280) : (isCollapsed ? 80 : 280),
-          x: isMobile ? (isCollapsed ? -280 : 0) : 0
-        }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed top-0 left-0 h-full bg-gradient-to-b from-gray-900 to-gray-800 text-white z-50 shadow-2xl overflow-y-auto overflow-x-hidden
-          ${isMobile ? 'shadow-xl' : ''}`}
-      >
-        {/* Animated gradient border */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradient"></div>
+      {isCollapsed && hoveredItem && !isMobile && (
+        <div
+          className="fixed z-[100] bg-[#1E40AF] text-white text-sm px-3 py-2 rounded-md shadow-lg pointer-events-none border border-blue-700"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+          }}
+        >
+          {hoveredItem}
         </div>
+      )}
 
-        {/* Header with logo */}
-        <div className="relative flex items-center justify-between h-20 px-4 overflow-hidden border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
-          <motion.div 
-            animate={{ opacity: isCollapsed && !isMobile ? 0 : 1 }}
-            className="flex items-center gap-3"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-70"></div>
-              <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">TH</span>
+      <div
+        onMouseEnter={handleMouseEnterSidebar}
+        onMouseLeave={handleMouseLeaveSidebar}
+        className={`fixed top-0 left-0 h-full bg-[#1E40AF] text-white z-50 transition-all duration-300 border-r border-blue-800/50
+        ${
+          isMobile
+            ? isCollapsed
+              ? "-translate-x-full w-52"
+              : "translate-x-0 w-52"
+            : isCollapsed
+            ? "w-16"
+            : "w-52"
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-center px-3 font-bold tracking-tight border-b h-14 bg-blue-900/40 border-blue-700/50">
+          {isCollapsed && !isMobile ? (
+            <span className="text-xl text-emerald-300">{getHeaderTitle()}</span>
+          ) : (
+            <div className="flex flex-col w-full">
+              <span className="text-xs uppercase tracking-[0.2em] font-medium text-blue-100 mb-0.5">
+                {getHeaderTitle()}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span className="text-xs font-medium truncate text-blue-100/80">
+                  {currentPage}
+                </span>
+                {userRole === 'client' && selectedProduct && (
+                  <>
+                    <span className="text-blue-300">·</span>
+                    <span className="text-[10px] text-emerald-300 capitalize">{selectedProduct}</span>
+                  </>
+                )}
               </div>
             </div>
-            
-            {(!isCollapsed || isMobile) && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Timely Health
-                </h2>
-                <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
-                  {userRole === 'client' ? 'Client Portal' : 'Admin Portal'}
-                  {selectedProduct && (
-                    <>
-                      <ChevronRight className="w-3 h-3" />
-                      <span className="capitalize">{selectedProduct}</span>
-                    </>
-                  )}
-                </p>
-              </motion.div>
-            )}
-          </motion.div>
-
-          {/* Collapse indicator for desktop */}
-          {!isMobile && (
-            <motion.div
-              animate={{ rotate: isCollapsed ? 180 : 0 }}
-              className="text-gray-400"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </motion.div>
           )}
         </div>
 
-        {/* User role badge for client */}
-        {userRole === 'client' && selectedProduct && !isCollapsed && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mx-4 mt-4 p-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20"
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span className="text-xs text-gray-300">
-                Active Product: <span className="text-white font-semibold capitalize">{selectedProduct}</span>
-              </span>
-            </div>
-          </motion.div>
-        )}
-
         {/* Menu */}
-        <nav className="relative px-3 py-4 pb-32 min-h-[calc(100%-5rem)]">
-          <div className="space-y-2">
-            {sectionsToShow.map((item, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="mb-2"
-              >
-                {/* Section Header with Dropdown */}
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`group relative flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer overflow-hidden
-                    ${openDropdown === item.name ? 'bg-gradient-to-r ' + item.color : 'hover:bg-gray-700/50'}`}
-                  onClick={(e) => toggleDropdown(e, item.name)}
-                >
-                  {/* Background gradient on hover */}
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-r ${item.color}`}></div>
-                  
-                  <div className="flex items-center gap-3 z-10">
-                    <div className={`p-2 rounded-lg bg-gradient-to-br ${item.color} bg-opacity-20 group-hover:scale-110 transition-transform`}>
-                      {item.icon}
-                    </div>
-                    
-                    {(!isCollapsed || isMobile) && (
-                      <span className="text-sm font-medium">
-                        {item.name}
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto no-scrollbar" style={{ height: 'calc(100vh - 7rem)' }}>
+          {elements.map((item, idx) => (
+            <div key={idx}>
+              {item.dropdown ? (
+                <>
+                  <div
+                    className={`group flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer transition-all duration-200 ${
+                      isDropdownActive(item.dropdown)
+                        ? "bg-emerald-600/80 text-white shadow-lg"
+                        : openDropdown === item.name
+                        ? "bg-blue-700/70"
+                        : "hover:bg-blue-700/60"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.dropdown && item.dropdown.length > 0) {
+                        navigate(item.dropdown[0].path);
+                        setOpenDropdown(null);
+                        setOpenSubDropdown({});
+                        if (onLinkClick) onLinkClick();
+                      }
+                    }}
+                    onMouseEnter={(e) => isCollapsed && !isMobile && handleMouseMove(e, item.name)}
+                    onMouseMove={(e) => isCollapsed && !isMobile && handleMouseMove(e, item.name)}
+                    onMouseLeave={() => isCollapsed && !isMobile && setHoveredItem(null)}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={`text-lg transition-colors duration-200 ${
+                        isDropdownActive(item.dropdown)
+                          ? "text-white"
+                          : openDropdown === item.name
+                          ? "text-emerald-300"
+                          : "text-blue-100 group-hover:text-emerald-300"
+                      }`}>
+                        {item.icon}
                       </span>
+                      {!isCollapsed && (
+                        <span className="text-[14px] font-medium leading-none">
+                          {item.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {!isCollapsed && (
+                      <div className="flex items-center gap-1">
+                        {isDropdownActive(item.dropdown) && (
+                          <div className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></div>
+                        )}
+                        <FaChevronDown
+                          onClick={(e) => toggleDropdown(e, item.name)}
+                          className={`text-xs transition-transform duration-300 p-0 hover:bg-blue-600/50 rounded cursor-pointer ${
+                            isDropdownActive(item.dropdown)
+                              ? "text-white"
+                              : openDropdown === item.name
+                              ? "text-emerald-300"
+                              : "text-blue-300 hover:text-white"
+                          } ${openDropdown === item.name ? "rotate-180" : ""}`}
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            minWidth: '20px',
+                            minHeight: '20px'
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
 
-                  {(!isCollapsed || isMobile) && (
-                    <motion.div
-                      animate={{ rotate: openDropdown === item.name ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <FaChevronDown className="text-xs text-gray-400" />
-                    </motion.div>
-                  )}
-                </motion.div>
-
-                {/* Dropdown Items */}
-                <AnimatePresence>
-                  {openDropdown === item.name && (!isCollapsed || isMobile) && (
-                    <motion.ul
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="ml-11 mt-1 space-y-0.5 overflow-hidden"
-                    >
+                  {/* DROPDOWN ITEMS */}
+                  {openDropdown === item.name && !isCollapsed && (
+                    <ul className="mt-0.5 space-y-0.5">
                       {item.dropdown.map((sub, i) => (
-                        <motion.li
-                          key={i}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                        >
-                          {sub.hasSubmenu ? (
-                            // Submenu item (like Recruitment)
-                            <div className="space-y-0.5">
+                        <li key={i}>
+                          {sub.submenu ? (
+                            // Handle submenu
+                            <div>
                               <div
                                 onClick={(e) => toggleSubDropdown(e, item.name, sub.name)}
-                                className={`flex items-center justify-between gap-2 py-2 px-3 text-sm rounded-lg transition-all duration-200 cursor-pointer
-                                  ${openSubDropdown[item.name]?.[sub.name] 
-                                    ? `bg-gradient-to-r ${item.color} text-white shadow-lg` 
-                                    : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'}`}
+                                className={`flex items-center justify-between py-1 text-[13px] transition-colors pl-8 pr-2 rounded cursor-pointer ${
+                                  sub.submenu?.some(s => isActive(s.path))
+                                    ? "text-emerald-300 font-semibold"
+                                    : "text-blue-100 hover:text-emerald-300"
+                                }`}
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className="opacity-70">{sub.icon}</span>
-                                  <span className="no-underline">{sub.name}</span>
-                                </div>
-                                <motion.div
-                                  animate={{ rotate: openSubDropdown[item.name]?.[sub.name] ? 180 : 0 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <ChevronDown className="w-3 h-3" />
-                                </motion.div>
+                                <span>{sub.name}</span>
+                                <FaChevronDown
+                                  className={`text-[10px] transition-transform duration-200 ${
+                                    openSubDropdown[item.name]?.[sub.name] ? "rotate-180" : ""
+                                  }`}
+                                />
                               </div>
-                              
-                              {/* Submenu items */}
-                              <AnimatePresence>
-                                {openSubDropdown[item.name]?.[sub.name] && (
-                                  <motion.ul
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="ml-6 space-y-0.5 overflow-hidden"
-                                  >
-                                    {sub.submenu.map((subItem, j) => (
-                                      <motion.li
-                                        key={`sub-${j}`}
-                                        initial={{ opacity: 0, x: -5 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: j * 0.03 }}
+                              {openSubDropdown[item.name]?.[sub.name] && (
+                                <ul className="ml-4 space-y-0.5">
+                                  {sub.submenu.map((subItem, j) => (
+                                    <li key={j}>
+                                      <Link
+                                        to={subItem.path}
+                                        onClick={() => handleDropdownItemClick(subItem.path)}
+                                        className={`block py-1 text-[12px] transition-colors pl-8 no-underline ${
+                                          isActive(subItem.path)
+                                            ? "text-emerald-300 font-semibold"
+                                            : "text-blue-100/80 hover:text-emerald-300"
+                                        }`}
                                       >
-                                        <Link
-                                          to={subItem.path}
-                                          onClick={handleAnyClick}
-                                          className={`flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg transition-all duration-200 no-underline
-                                            ${location.pathname === subItem.path 
-                                              ? `bg-gradient-to-r ${item.color} text-white shadow-lg` 
-                                              : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}`}
-                                        >
-                                          <span className="opacity-60">{subItem.icon}</span>
-                                          <span className="no-underline">{subItem.name}</span>
-                                          
-                                          {/* Active indicator for sub-items */}
-                                          {location.pathname === subItem.path && (
-                                            <motion.div
-                                              layoutId="subActiveIndicator"
-                                              className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
-                                            />
+                                        <div className="flex items-center gap-2">
+                                          {isActive(subItem.path) && (
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
                                           )}
-                                        </Link>
-                                      </motion.li>
-                                    ))}
-                                  </motion.ul>
-                                )}
-                              </AnimatePresence>
+                                          {subItem.name}
+                                        </div>
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
                           ) : (
-                            // Regular menu item
                             <Link
                               to={sub.path}
-                              onClick={handleAnyClick}
-                              className={`flex items-center gap-2 py-2 px-3 text-sm rounded-lg transition-all duration-200 no-underline
-                                ${location.pathname === sub.path 
-                                  ? `bg-gradient-to-r ${item.color} text-white shadow-lg` 
-                                  : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'}`}
+                              onClick={() => handleDropdownItemClick(sub.path)}
+                              className={`block py-1 text-[13px] transition-colors pl-8 no-underline ${
+                                isActive(sub.path)
+                                  ? "text-emerald-300 font-semibold"
+                                  : "text-blue-100 hover:text-emerald-300"
+                              }`}
                             >
-                              <span className="opacity-70">{sub.icon}</span>
-                              <span className="no-underline">{sub.name}</span>
-                              
-                              {/* Active indicator */}
-                              {location.pathname === sub.path && (
-                                <motion.div
-                                  layoutId="activeIndicator"
-                                  className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
-                                />
-                              )}
+                              <div className="flex items-center gap-2">
+                                {isActive(sub.path) && (
+                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                                )}
+                                {sub.name}
+                              </div>
                             </Link>
                           )}
-                        </motion.li>
+                        </li>
                       ))}
-                    </motion.ul>
+                    </ul>
                   )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Logout Button with margin top */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8 pt-4 border-t border-gray-700/50"
-          >
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                logoutElement.action();
-                handleAnyClick();
-              }}
-              className="group relative flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer overflow-hidden hover:bg-red-500/10"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              
-              <div className="p-2 rounded-lg bg-red-500/20 group-hover:scale-110 transition-transform">
-                {logoutElement.icon}
-              </div>
-              
-              {(!isCollapsed || isMobile) && (
-                <span className="text-sm font-medium text-red-400 group-hover:text-red-300 no-underline">
-                  {logoutElement.name}
-                </span>
+                </>
+              ) : (
+                <div
+                  onClick={() => handleItemClick(item.path, item.action)}
+                  onMouseEnter={(e) => isCollapsed && !isMobile && handleMouseMove(e, item.name)}
+                  onMouseMove={(e) => isCollapsed && !isMobile && handleMouseMove(e, item.name)}
+                  onMouseLeave={() => isCollapsed && !isMobile && setHoveredItem(null)}
+                  className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-md cursor-pointer transition-all duration-200 ${
+                    isActive(item.path)
+                      ? "bg-emerald-600/80 text-white shadow-lg"
+                      : "hover:bg-blue-700/60"
+                  }`}
+                >
+                  <span className={`text-lg transition-colors duration-200 ${
+                    isActive(item.path)
+                      ? "text-white"
+                      : "text-blue-100 group-hover:text-emerald-300"
+                  }`}>
+                    {item.icon}
+                  </span>
+                  {!isCollapsed && (
+                    <div className="flex items-center flex-1 min-w-0 gap-2">
+                      <span className="text-[14px] font-medium leading-none truncate">
+                        {item.name}
+                      </span>
+                      {isActive(item.path) && (
+                        <div className="w-2 h-2 ml-auto rounded-full bg-emerald-300 animate-pulse"></div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
-            </motion.div>
-          </motion.div>
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
-        <motion.div 
-          animate={{ opacity: isCollapsed && !isMobile ? 0 : 1 }}
-          className="sticky bottom-0 left-0 right-0 px-4 py-3 text-xs text-gray-400 border-t border-gray-700/50 bg-gray-900/50 backdrop-blur-sm"
-        >
-          {(!isCollapsed || isMobile) ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-gray-300">v2.0</p>
-                <p className="text-[10px]">© 2026 Timely Health</p>
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-3 text-[10px] text-blue-200/60 border-t border-blue-700/50 bg-blue-900/20">
+          {!isCollapsed ? (
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold tracking-wider uppercase text-blue-200/80">{getFooterText()}</p>
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-600/20 rounded">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                  <span className="text-[9px] text-emerald-300 font-medium">Active</span>
+                </div>
               </div>
-              <Award className="w-5 h-5 text-gray-500" />
+              <p>© 2026 Timely Health</p>
             </div>
           ) : (
-            <span className="block text-center">v2</span>
+            <div className="text-center">
+              <div className="w-3 h-3 mx-auto mb-1 rounded-full bg-emerald-400 animate-pulse"></div>
+              <span>©</span>
+            </div>
           )}
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
       <style jsx>{`
-        @keyframes gradient {
-          0%, 100% { transform: translateX(0%) scale(1); }
-          50% { transform: translateX(100%) scale(1.5); }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
         }
-        .animate-gradient {
-          animation: gradient 3s ease infinite;
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+        
+        /* Global fix for all links in sidebar */
+        :global(.no-underline) {
+          text-decoration: none !important;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.1);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.3);
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.5);
+        
+        :global(a) {
+          text-decoration: none !important;
         }
       `}</style>
     </>

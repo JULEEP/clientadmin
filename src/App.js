@@ -153,6 +153,11 @@ import CandidatePersonalDocuments from "./Pages/CandidatePersonalDocuments.js";
 import EmployeeJourney from "./Pages/EmployeeJourney.js";
 import AllExpensives from "./Pages/AllExpensives.js";
 import AllBookings from "./Pages/AllBookings.js";
+import { Permissions } from "./Pages/Permissions.js";
+import JobDetails from "./Pages/JobDetails.js";
+import PersonalDocuments from "./Pages/PersonalDocuments.js";
+import CoworkingClientDashboard from "./Pages/CoworkingClientDashboard.js";
+import CoworkingClientBookings from "./Pages/CoworkingClientBookings.js";
 
 
 
@@ -165,6 +170,7 @@ function App() {
       {/* <Route path="/land" element={<LandingPage />} /> */}
       {/* <Route path="/" element={<LoginPage />} /> */}
       <Route path="/login" element={<Login />} />
+                    <Route path="/jobs/:id" element={<JobDetails />} />
       <Route path="/admin-login" element={<Login />} />
       <Route path="/employee-login" element={<Login />} />
       <Route path="/employeedashboard" element={<EmployeeDashboard />} />
@@ -329,6 +335,10 @@ function App() {
               <Route path="/employee-journey" element={<EmployeeJourney />} />
               <Route path="/all-expensives" element={<AllExpensives />} />
               <Route path="/allbookings" element={<AllBookings />}></Route>
+              <Route path="/permissions" element={<Permissions />}></Route>
+              <Route path="/personaldocuments" element={<PersonalDocuments />} />
+               <Route path="/coworking-dashboard" element={<CoworkingClientDashboard />} />
+              <Route path="/all-bookings" element={<CoworkingClientBookings />} />
 
             </Routes>
           </AdminLayout>

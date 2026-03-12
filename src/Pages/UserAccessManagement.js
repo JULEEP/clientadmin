@@ -113,10 +113,15 @@ const UserAccessManagement = () => {
     setLoading(true);
     try {
       const clientId = getClientId();
-      // ✅ clientId path mein
+      if (!clientId) {
+        toast.error("Client ID not found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get(`${API_BASE_URL}/employees/get-employees/${clientId}`);
 
-      // ✅ Array aur Object dono handle
+      // Handle both array and object responses
       const raw = response.data;
       const data = Array.isArray(raw)
         ? raw
@@ -189,7 +194,6 @@ const UserAccessManagement = () => {
     if (!selectedEmployee) return;
     try {
       const clientId = getClientId();
-      // ✅ clientId query param mein bhi bheja (backend ko chahiye ho toh)
       const response = await axios.put(
         `${API_BASE_URL}/employees/update/${selectedEmployee._id}`,
         { permissions, clientId }
@@ -209,115 +213,203 @@ const UserAccessManagement = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-gray-800 flex justify-center">
-      <ToastContainer position="top-right" autoClose={3000} />
-
-      <div className="w-full max-w-8xl bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-
-        {/* Header */}
-        <div className="border-b border-gray-100 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/50">
-          <div className="flex items-center gap-2">
-            <FiSettings className="text-gray-400" />
-            <h1 className="text-lg font-bold text-gray-800">User Access Management</h1>
+  // Client Info Banner
+  const ClientInfoBanner = () => {
+    const clientId = getClientId();
+    if (!clientId) return null;
+    
+    return (
+      <div className="p-3 mb-3 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="font-medium">Client ID:</span>
+            <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
+              {clientId.substring(0, 8)}...
+            </span>
+            <span className="ml-4 text-xs text-gray-500">
+              Managing access for your client account
+            </span>
           </div>
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+            Total Employees: {employees.length}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
-          {/* Global Search */}
-          <div className="relative w-full md:w-80" ref={globalSearchRef}>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Quick Search Employee (Name or ID)..."
-                value={globalSearchTerm}
-                onChange={(e) => {
-                  setGlobalSearchTerm(e.target.value);
-                  setIsGlobalSearchOpen(true);
-                }}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all bg-white"
-              />
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-
-            {isGlobalSearchOpen && globalSearchTerm && (
-              <div className="absolute right-0 z-30 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                {filteredGlobalEmployees.length > 0 ? (
-                  filteredGlobalEmployees.map((emp) => (
-                    <div
-                      key={emp._id}
-                      onClick={() => handleGlobalSelectEmployee(emp)}
-                      className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors group"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold text-gray-800 text-sm group-hover:text-blue-700">{emp.name}</p>
-                          <p className="text-[10px] text-gray-500 font-medium uppercase mt-0.5">{emp.role || "No Role"}</p>
-                        </div>
-                        <span className="text-[10px] font-bold text-white bg-[#a55eea] px-2 py-0.5 rounded-full">
-                          {emp.employeeId}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-center text-sm text-gray-400">No employees found.</div>
-                )}
-              </div>
-            )}
+  // Stats cards
+  const StatsCards = () => (
+    <div className="grid grid-cols-2 gap-2 mb-3 sm:grid-cols-4">
+      <div className="px-2 py-2 bg-white border-t-4 border-blue-500 rounded-md shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold leading-tight text-gray-800">
+              Total Employees: {employees.length}
+            </p>
           </div>
         </div>
+      </div>
+      <div className="px-2 py-2 bg-white border-t-4 border-green-500 rounded-md shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold leading-tight text-gray-800">
+              Roles: {availableRoles.length}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="px-2 py-2 bg-white border-t-4 border-purple-500 rounded-md shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold leading-tight text-gray-800">
+              Admins: {employees.filter(e => e.role === 'admin' || e.role === 'Admin').length}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="px-2 py-2 bg-white border-t-4 border-yellow-500 rounded-md shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold leading-tight text-gray-800">
+              Super Admins: {employees.filter(e => e.role === 'super_admin' || e.role === 'Super Admin').length}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-        <div className="p-6 md:p-8 space-y-6">
+  // Check if clientId is missing
+  const clientId = getClientId();
+  if (!clientId && !loading) {
+    return (
+      <div className="min-h-screen p-2 bg-gradient-to-br from-purple-50 to-blue-100">
+        <div className="mx-auto max-w-9xl">
+          <div className="p-8 text-center bg-white rounded-lg shadow-md">
+            <p className="text-lg text-red-600">Client ID not found. Please login again.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-6">
+  return (
+    <div className="min-h-screen p-2 bg-gradient-to-br from-purple-50 to-blue-100">
+      <ToastContainer position="top-right" autoClose={3000} />
+      <div className="mx-auto max-w-9xl">
 
-            {/* Role Selector */}
-            <div className="flex-1 space-y-1.5 relative" ref={roleDropdownRef}>
-              <label className="block text-gray-700 font-bold text-sm">Select Role</label>
-              <div
-                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                className="w-full p-3 flex justify-between items-center text-sm font-medium border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:border-blue-400 bg-white transition-all text-gray-700"
-              >
-                <span>
-                  {selectedRole ? (
-                    <span className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold uppercase">{selectedRole}</span>
-                      <span className="text-gray-400 text-xs">({roleStats[selectedRole]} Users)</span>
-                    </span>
-                  ) : "All Roles"}
-                </span>
-                <FiChevronDown className={`text-gray-400 transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
+        {/* Client Info Banner */}
+        <ClientInfoBanner />
+
+        {/* Stats Overview */}
+        <StatsCards />
+
+        {/* Main Content Card */}
+        <div className="p-3 bg-white border border-gray-200 shadow-md rounded-xl">
+          
+          {/* Header with Global Search */}
+          <div className="flex flex-col items-start gap-3 mb-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2">
+              <FiSettings className="text-gray-400" />
+              <h1 className="text-sm font-bold text-gray-800">User Access Management</h1>
+            </div>
+
+            {/* Global Search */}
+            <div className="relative w-full md:w-72" ref={globalSearchRef}>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Quick Search Employee (Name or ID)..."
+                  value={globalSearchTerm}
+                  onChange={(e) => {
+                    setGlobalSearchTerm(e.target.value);
+                    setIsGlobalSearchOpen(true);
+                  }}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                />
+                <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
               </div>
 
+              {isGlobalSearchOpen && globalSearchTerm && (
+                <div className="absolute right-0 z-30 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredGlobalEmployees.length > 0 ? (
+                    filteredGlobalEmployees.map((emp) => (
+                      <div
+                        key={emp._id}
+                        onClick={() => handleGlobalSelectEmployee(emp)}
+                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors group"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold text-gray-800 text-xs group-hover:text-blue-700">{emp.name}</p>
+                            <p className="text-[9px] text-gray-500 font-medium uppercase mt-0.5">{emp.role || "No Role"}</p>
+                          </div>
+                          <span className="text-[8px] font-bold text-white bg-purple-600 px-1.5 py-0.5 rounded-full">
+                            {emp.employeeId}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-xs text-center text-gray-400">No employees found.</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* --- ALL FILTERS IN ONE ROW --- */}
+          <div className="flex flex-col items-start gap-3 mb-4 md:flex-row md:items-end">
+            
+            {/* 1. Role Selector - Second */}
+            <div className="relative flex-1" ref={roleDropdownRef}>
+              <label className="block mb-1 text-xs font-medium text-gray-700">Select Role</label>
+              <div 
+                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                className="flex items-center justify-between w-full px-3 py-2 text-xs text-gray-700 transition-all bg-white border border-gray-300 rounded-md cursor-pointer hover:border-blue-400"
+              >
+                <span>
+                   {selectedRole ? (
+                     <span className="flex items-center gap-2">
+                       <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-medium uppercase">{selectedRole}</span>
+                       <span className="text-gray-400 text-[9px]">({roleStats[selectedRole]})</span>
+                     </span>
+                   ) : "All Roles"}
+                </span>
+                <FiChevronDown className={`text-gray-400 text-xs transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
+              </div>
+
+              {/* Role Dropdown */}
               {isRoleDropdownOpen && (
-                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                  <div
+                <div className="absolute z-20 w-full mt-1 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg max-h-60">
+                  <div 
                     onClick={() => handleSelectRole("")}
-                    className="px-4 py-2 hover:bg-blue-50 cursor-pointer flex justify-between items-center"
+                    className="flex items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-blue-50"
                   >
-                    <span className="text-sm font-medium text-gray-700">All Roles</span>
-                    {!selectedRole && <FiCheck className="text-blue-600" />}
+                    <span className="font-medium text-gray-700">All Roles</span>
+                    {!selectedRole && <FiCheck className="text-xs text-blue-600" />}
                   </div>
                   {availableRoles.map(role => (
-                    <div
+                    <div 
                       key={role}
                       onClick={() => handleSelectRole(role)}
-                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer flex justify-between items-center group"
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">{role}</span>
-                        <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{roleStats[role]}</span>
+                        <span className="text-xs font-medium text-gray-700">{role}</span>
+                        <span className="text-[9px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">{roleStats[role]}</span>
                       </div>
-                      {selectedRole === role && <FiCheck className="text-blue-600" />}
+                      {selectedRole === role && <FiCheck className="text-xs text-blue-600" />}
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Employee Selector */}
-            <div className="flex-[2] space-y-1.5 relative" ref={employeeDropdownRef}>
-              <label className="block text-gray-700 font-bold text-sm">Select Employee</label>
+            {/* 2. Employee Selector - Third */}
+            <div className="flex-[2] relative" ref={employeeDropdownRef}>
+              <label className="block mb-1 text-xs font-medium text-gray-700">Select Employee</label>
               <div className="relative">
                 <input
                   type="text"
@@ -325,43 +417,41 @@ const UserAccessManagement = () => {
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setIsEmployeeDropdownOpen(true);
-                    if (!e.target.value) setSelectedEmployee(null);
+                    if(!e.target.value) setSelectedEmployee(null);
                   }}
                   onClick={() => setIsEmployeeDropdownOpen(true)}
-                  placeholder={selectedRole ? `Search in ${selectedRole} (${roleStats[selectedRole] || 0} Users)...` : `Search Employee Name or ID (${employees.length} Users)...`}
-                  className="w-full p-3 pl-4 pr-10 text-sm font-medium border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  placeholder={selectedRole ? `Search in ${selectedRole}...` : `Search Name or ID...`}
+                  className="w-full px-3 py-2 pr-8 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  {loading
-                    ? <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-                    : <FiUser />
-                  }
+                <div className="absolute text-gray-400 -translate-y-1/2 right-2 top-1/2">
+                   {loading ? <div className="w-3 h-3 border-2 border-blue-500 rounded-full border-t-transparent animate-spin"/> : <FiUser className="text-xs" />}
                 </div>
               </div>
 
+              {/* Employee Dropdown */}
               {isEmployeeDropdownOpen && filteredEmployees.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg max-h-60">
                   {filteredEmployees.map((emp) => (
                     <div
                       key={emp._id}
                       onClick={() => handleSelectEmployee(emp)}
-                      className="flex justify-between items-center px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors group border-b border-gray-50 last:border-0"
+                      className="flex items-center justify-between px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-blue-50 last:border-0"
                     >
                       <div>
-                        <p className="font-bold text-gray-800 text-sm group-hover:text-blue-700">{emp.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold text-white bg-[#a55eea] px-2 py-0.5 rounded-full">
-                            {emp.employeeId}
+                        <p className="text-xs font-medium text-gray-800">{emp.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[8px] font-medium text-white bg-purple-600 px-1.5 py-0.5 rounded-full">
+                             {emp.employeeId}
                           </span>
                           {!selectedRole && (
                             <>
-                              <span className="text-[10px] text-gray-400">•</span>
-                              <span className="text-[10px] font-bold text-gray-500 uppercase">{emp.role}</span>
+                              <span className="text-[8px] text-gray-400">•</span>
+                              <span className="text-[8px] font-medium text-gray-500 uppercase">{emp.role}</span>
                             </>
                           )}
                         </div>
                       </div>
-                      {selectedEmployee?._id === emp._id && <FiCheck className="text-blue-600" />}
+                      {selectedEmployee?._id === emp._id && <FiCheck className="text-xs text-blue-600" />}
                     </div>
                   ))}
                 </div>
@@ -369,16 +459,36 @@ const UserAccessManagement = () => {
             </div>
           </div>
 
-          {/* Permissions Grid */}
+          {/* Selected Employee Info - Shows when employee is selected */}
+          {selectedEmployee && (
+            <div className="p-2 mb-4 border border-blue-200 rounded-md bg-blue-50">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full">
+                  <span className="text-xs font-semibold text-blue-800">
+                    {selectedEmployee.name?.charAt(0) || 'E'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-800">{selectedEmployee.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] text-white bg-purple-600 px-1.5 py-0.5 rounded-full">{selectedEmployee.employeeId}</span>
+                    <span className="text-[9px] text-gray-600">{selectedEmployee.role || 'No Role'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* --- PERMISSIONS GRID --- */}
           {selectedEmployee ? (
             <div className="pt-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
-                {permissionGroups.flatMap(group =>
-                  group.items.map(item => ({ ...item, type: group.type }))
-                ).map((item) => (
-                  <label
-                    key={item.id}
-                    className={`flex items-center gap-3 cursor-pointer select-none group py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors ${item.type === "immutable" ? "opacity-60 cursor-not-allowed" : ""}`}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2">
+                {permissionGroups.flatMap(group => group.items.map(item => ({...item, type: group.type}))).map((item) => (
+                  <label 
+                    key={item.id} 
+                    className={`flex items-center gap-2 cursor-pointer select-none py-1 px-2 rounded hover:bg-gray-50 transition-colors ${
+                       item.type === "immutable" ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
                   >
                     <div className="relative flex items-center justify-center">
                       <input
@@ -386,17 +496,17 @@ const UserAccessManagement = () => {
                         checked={item.type === "immutable" ? true : permissions.includes(item.id)}
                         onChange={() => item.type === "toggleable" && handleTogglePermission(item.id)}
                         disabled={item.type === "immutable"}
-                        className="peer sr-only"
+                        className="sr-only peer"
                       />
-                      <div className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${
-                        item.type === "immutable"
-                          ? "bg-blue-500 border-blue-500 text-white"
-                          : "border-gray-300 peer-checked:bg-blue-600 peer-checked:border-blue-600 peer-checked:text-white group-hover:border-blue-400"
+                      <div className={`w-3.5 h-3.5 rounded border transition-all duration-200 flex items-center justify-center ${
+                         item.type === "immutable"
+                           ? "bg-blue-500 border-blue-500 text-white"
+                           : "border-gray-300 peer-checked:bg-blue-600 peer-checked:border-blue-600 peer-checked:text-white hover:border-blue-400"
                       }`}>
-                        <FiCheck size={10} className={item.type === "toggleable" && !permissions.includes(item.id) ? "hidden" : "block"} />
+                        <FiCheck size={8} className={item.type === "toggleable" && !permissions.includes(item.id) ? "hidden" : "block"} />
                       </div>
                     </div>
-                    <span className="text-xs font-semibold text-gray-700 group-hover:text-gray-900">
+                    <span className="text-[10px] font-medium text-gray-700">
                       {item.name}
                     </span>
                   </label>
@@ -404,26 +514,30 @@ const UserAccessManagement = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-100">
-                <button
-                  onClick={savePermissions}
-                  className="px-8 py-2.5 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-lg rounded-xl shadow-lg shadow-green-200 transition-all active:scale-95"
-                >
-                  Update
-                </button>
-                <button
-                  onClick={() => { setSelectedEmployee(null); setSearchTerm(""); }}
-                  className="px-8 py-2.5 bg-[#a55eea] hover:bg-[#9a52d8] text-white font-bold text-lg rounded-xl shadow-lg shadow-pink-200 transition-all active:scale-95"
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-end gap-2 pt-3 mt-4 border-t border-gray-200">
+                 <button
+                    onClick={savePermissions}
+                    className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition"
+                  >
+                    Update Access
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedEmployee(null);
+                      setSearchTerm("");
+                    }}
+                    className="px-4 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition"
+                  >
+                    Cancel
+                  </button>
               </div>
             </div>
           ) : (
-            <div className="py-12 flex flex-col items-center justify-center text-gray-300 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-              <FiFilter size={32} className="mb-3 opacity-50 text-blue-300" />
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Select Role & Employee to Configure</p>
-            </div>
+             /* Empty State */
+             <div className="flex flex-col items-center justify-center py-8 text-gray-400 border border-gray-300 border-dashed rounded-md bg-gray-50">
+               <FiFilter size={24} className="mb-2 text-blue-400 opacity-50"/>
+               <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Select Role & Employee to Configure</p>
+             </div>
           )}
 
         </div>

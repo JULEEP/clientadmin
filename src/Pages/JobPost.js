@@ -1,23 +1,37 @@
-import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useEffect, useRef, useState } from "react";
 import {
-  FiBriefcase, FiList, FiCode, FiDollarSign,
-  FiClipboard, FiCopy, FiCheckCircle, FiPlus,
-  FiX, FiExternalLink, FiSearch, FiMoreVertical,
-  FiEdit2, FiEye, FiTrash2
+  FiBriefcase,
+  FiCheckCircle,
+  FiClipboard,
+  FiCode,
+  FiCopy,
+  FiDollarSign,
+  FiEdit2,
+  FiExternalLink,
+  FiEye,
+  FiList,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+  FiX
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5000/api'
+
+
+const API_BASE = API_BASE_URL;
 
 function JobPost() {
   const [formData, setFormData] = useState({
     role: "",
-    responsibilities: "",
+    description: "",
     skills: "",
+    experience: "",
+    location: "",
     salary: "",
     assessmentIds: [],
-    clientId: localStorage.getItem("clientId") || "", // Add clientId
   });
 
   const [jobs, setJobs] = useState([]);
@@ -30,12 +44,25 @@ function JobPost() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [copiedId, setCopiedId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [roleSearchQuery, setRoleSearchQuery] = useState("");
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const roleDropdownRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [currentJobId, setCurrentJobId] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  
+  // Pagination states
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    limit: 10,
+  });
+  
   const navigate = useNavigate();
-
   const clientId = localStorage.getItem("clientId");
 
   // Fetch Jobs, Quizzes and Roles
@@ -48,6 +75,14 @@ function JobPost() {
     fetchJobs();
     fetchQuizzes();
     fetchRoles();
+
+    const handleClickOutside = (event) => {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
+        setIsRoleDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const fetchJobs = async () => {
@@ -94,11 +129,12 @@ function JobPost() {
     setCurrentJobId(null);
     setFormData({
       role: "",
-      responsibilities: "",
+      description: "",
       skills: "",
       salary: "",
+      experience: "",
+      location: "",
       assessmentIds: [],
-      clientId: clientId,
     });
     setIsModalOpen(true);
   };
@@ -108,11 +144,12 @@ function JobPost() {
     setCurrentJobId(job._id);
     setFormData({
       role: job.role,
-      responsibilities: job.responsibilities,
+      description: job.description,
       skills: job.skills,
       salary: job.salary,
+      location: job.location,
+      experience: job.experience,
       assessmentIds: job.assessmentIds ? job.assessmentIds.map(a => a._id || a) : [],
-      clientId: clientId,
     });
     setIsModalOpen(true);
   };
@@ -126,7 +163,7 @@ function JobPost() {
     if (!window.confirm("Are you sure you want to delete this job post?")) return;
     try {
       const res = await axios.delete(`${API_BASE}/jobs/${id}`, {
-        data: { clientId } // Send clientId in body
+        data: { clientId }
       });
       if (res.data.success) {
         setMessage({ type: "success", text: "Job post deleted successfully!" });
@@ -176,17 +213,15 @@ function JobPost() {
       }
 
       if (response.data.success) {
-        setMessage({ 
-          type: "success", 
-          text: isEditing ? "Job post updated successfully!" : "Job post created successfully!" 
-        });
+        setMessage({ type: "success", text: isEditing ? "Job post updated successfully!" : "Job post created successfully!" });
         setFormData({
           role: "",
-          responsibilities: "",
+          description: "",
           skills: "",
           salary: "",
+          experience: "",
+          location: "",
           assessmentIds: [],
-          clientId: clientId,
         });
         fetchJobs();
         setTimeout(() => {
@@ -202,118 +237,315 @@ function JobPost() {
     }
   };
 
-  const copyToClipboard = (link, id) => {
-    const fullLink = window.location.origin + link;
-    navigator.clipboard.writeText(fullLink);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(""), 2000);
+  const copyToClipboard = (job) => {
+    const fullLink = window.location.origin + job.link;
+    const experienceLabel = job.experience ? (job.experience === "Fresher" ? "Fresher" : `${job.experience} Years`) : "Not Specified";
+    const jobDesc = job.description || job.responsibilities || "";
+
+    const template = `🚀 Hiring: ${job.role}
+
+📍 Location: ${job.location || "Not Specified"}
+💰 Salary / Package: ${job.salary || "Competitive"}
+⏳ Experience: ${experienceLabel}
+
+📌 Job Description:
+${jobDesc ? jobDesc.split('\n').filter(l => l.trim()).map(l => `• ${l.trim()}`).join('\n') : "• Information available on request"}
+
+🛠 Required Skills:
+${job.skills ? job.skills.split(',').filter(s => s.trim()).map(s => `• ${s.trim()}`).join('\n') : "• Relevant skills required"}
+
+📩 Interested candidates can share their resume.
+Direct Apply Link: ${fullLink}`;
+
+    navigator.clipboard.writeText(template);
+    setCopiedId(job._id);
+    setTimeout(() => setCopiedId(""), 2200);
   };
 
-  const filteredJobs = jobs.filter(job =>
-    job.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.skills.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredJobs = jobs.filter(job => {
+    const matchesSearch = job.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.skills.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter ? job.role === roleFilter : true;
+    const matchesDate = dateFilter
+      ? new Date(job.createdAt || job.appliedAt).toISOString().slice(0, 10) === dateFilter
+      : true;
+    return matchesSearch && matchesRole && matchesDate;
+  });
+
+  // Pagination Handlers
+  const handleItemsPerPageChange = (limit) => {
+    setPagination({
+      currentPage: 1,
+      limit: limit,
+      totalCount: filteredJobs.length,
+      totalPages: Math.ceil(filteredJobs.length / limit)
+    });
+  };
+
+  const handlePrevPage = () => {
+    if (pagination.currentPage > 1) {
+      setPagination(prev => ({
+        ...prev,
+        currentPage: prev.currentPage - 1
+      }));
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.currentPage < pagination.totalPages) {
+      setPagination(prev => ({
+        ...prev,
+        currentPage: prev.currentPage + 1
+      }));
+    }
+  };
+
+  const handlePageClick = (page) => {
+    setPagination(prev => ({
+      ...prev,
+      currentPage: page
+    }));
+  };
+
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    for (let i = 1; i <= pagination.totalPages; i++) {
+      if (
+        i === 1 ||
+        i === pagination.totalPages ||
+        (i >= pagination.currentPage - 2 && i <= pagination.currentPage + 2)
+      ) {
+        pageNumbers.push(i);
+      } else if (i === pagination.currentPage - 3 || i === pagination.currentPage + 3) {
+        pageNumbers.push("...");
+      }
+    }
+    return pageNumbers;
+  };
+
+  // Update pagination when filtered results change
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      totalCount: filteredJobs.length,
+      totalPages: Math.ceil(filteredJobs.length / prev.limit),
+      currentPage: 1
+    }));
+  }, [filteredJobs.length, searchQuery, roleFilter, dateFilter]);
+
+  // Calculate pagination
+  const indexOfLastItem = pagination.currentPage * pagination.limit;
+  const indexOfFirstItem = indexOfLastItem - pagination.limit;
+  const currentItems = filteredJobs.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setRoleFilter("");
+    setRoleSearchQuery("");
+    setDateFilter("");
+  };
 
   return (
-    <div className="p-2 md:p-3 lg:p-4 ml-4 md:ml-6 lg:ml-8 bg-white rounded-lg shadow-md max-w-9xl min-h-screen">
-      {/* Header Section */}
-      <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between">
-        {/* Search Bar */}
-        <div className="relative w-full md:w-64">
-          <input
-            type="text"
-            className="w-full py-1.5 pl-8 pr-3 text-xs text-gray-700 placeholder-gray-400 transition-all border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search positions or skills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none text-gray-400">
-            <FiSearch size={12} />
-          </div>
-        </div>
-
-        {/* Action Buttons */}
+    <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6 lg:p-8">
+      {/* Filters Section */}
+      <div className="p-3 mb-3 bg-white rounded-lg shadow-md">
         <div className="flex flex-wrap items-center gap-2">
+          
+          {/* Search by Role or Skills */}
+          <div className="relative flex-1 min-w-[180px]">
+            <FiSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+            <input
+              type="text"
+              placeholder="Search by Role or Skills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Role Filter Button */}
+          <div className="relative" ref={roleDropdownRef}>
+            <button
+              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+              className={`h-8 px-3 text-xs font-medium rounded-md transition flex items-center gap-1 ${
+                roleFilter 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+              }`}
+            >
+              <FiBriefcase className="text-xs" /> Role {roleFilter && `: ${roleFilter}`}
+            </button>
+            
+            {/* Role Filter Dropdown */}
+            {isRoleDropdownOpen && (
+              <div className="absolute z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="p-2 border-b border-gray-100 bg-gray-50">
+                  <div className="relative">
+                    <FiSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                    <input
+                      type="text"
+                      className="w-full py-1 pl-7 pr-2 text-xs bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Search roles..."
+                      value={roleSearchQuery}
+                      onChange={(e) => setRoleSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div 
+                  onClick={() => {
+                    setRoleFilter('');
+                    setIsRoleDropdownOpen(false);
+                    setRoleSearchQuery('');
+                  }}
+                  className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-medium ${
+                    !roleFilter ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                  }`}
+                >
+                  All Roles
+                </div>
+                {roles
+                  .filter(r => r.name.toLowerCase().includes(roleSearchQuery.toLowerCase()))
+                  .map((r) => (
+                    <div 
+                      key={r._id}
+                      onClick={() => {
+                        setRoleFilter(r.name);
+                        setIsRoleDropdownOpen(false);
+                        setRoleSearchQuery('');
+                      }}
+                      className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer ${
+                        roleFilter === r.name ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {r.name}
+                    </div>
+                  ))}
+                {roles.filter(r => r.name.toLowerCase().includes(roleSearchQuery.toLowerCase())).length === 0 && (
+                  <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                    No roles found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Date Filter */}
+          <div className="relative w-[130px]">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
+              Date:
+            </span>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              className="w-full pl-12 pr-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Post New Job Button */}
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white transition-colors bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700"
+            className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition flex items-center gap-1 ml-auto"
           >
-            <FiPlus size={12} />
+            <FiPlus className="text-xs" />
             <span>Post New Job</span>
           </button>
+
+          {/* Clear Filters Button */}
+          {(searchQuery || roleFilter || dateFilter) && (
+            <button
+              onClick={clearFilters}
+              className="h-8 px-3 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
       {/* Job Listings Table */}
-      <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
+      <div className="p-0 mb-0 bg-white border shadow-lg rounded-2xl">
         {fetchingJobs ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <div className="w-8 h-8 border-3 border-indigo-50 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="text-[10px] font-bold text-gray-400 animate-pulse uppercase tracking-wider">Syncing listing...</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-10 h-10 border-4 border-indigo-50 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p className="text-xs font-bold text-gray-400 animate-pulse uppercase tracking-wider">Syncing listing...</p>
           </div>
         ) : filteredJobs.length > 0 ? (
-          <table className="min-w-full">
-            <thead className="text-left text-xs text-white bg-gradient-to-r from-purple-500 to-blue-600">
+         
+          <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
+            <table className="min-w-full">
+              <thead className="text-sm text-left text-white bg-gradient-to-r from-green-500 to-blue-600">
               <tr>
-                <th className="py-2 px-3 text-center">Job Role</th>
-                <th className="py-2 px-3 text-center">Skills</th>
-                <th className="py-2 px-3 text-center">Salary</th>
-                <th className="py-2 px-3 text-center">Assessments</th>
-                <th className="py-2 px-3 text-center">Actions</th>
+                <th className="py-2 text-center">Job Role</th>
+                <th className="py-2 text-center">Skills</th>
+                <th className="py-2 text-center">Salary</th>
+                <th className="py-2 text-center">Assessments</th>
+                <th className="py-2 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredJobs.map((job) => (
+              {currentItems.map((job) => (
                 <tr key={job._id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="p-3 text-xs font-medium text-center">
-                    <div className="font-bold text-gray-800">{job.role}</div>
+                  <td className="px-2 py-2 font-medium text-center">
+                    <div className="text-gray-900 whitespace-nowrap">{job.role}</div>
                   </td>
-                  <td className="p-3 text-xs font-medium text-center">
-                    <div className="flex flex-wrap justify-center gap-0.5">
+                  <td className="px-2 py-2 text-center">
+                    <div className="text-gray-600">
                       {job.skills.split(",").map((skill, idx) => (
-                        <span key={idx} className="bg-gray-100 text-gray-600 text-[8px] px-1.5 py-0.5 rounded uppercase font-bold">
+                        <span key={idx} className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded uppercase ">
                           {skill.trim()}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="p-3 text-xs font-medium text-center">
-                    <span className="text-emerald-600 font-bold text-xs">{job.salary || "Competitive"}</span>
+                  <td className="px-2 py-2 text-center">
+                    <span className="text-emerald-600 ">{job.salary || "Competitive"}</span>
                   </td>
-                  <td className="p-3 text-xs font-medium text-center">
-                    <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                  <td className="px-2 py-2 text-center">
+                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] ">
                       {job.assessmentIds?.length || 0} Linked
                     </span>
                   </td>
-                  <td className="p-3 text-xs font-medium text-center">
-                    <div className="flex justify-center gap-1.5">
+                  <td className="px-2 py-2 text-center">
+                    <div className="flex justify-center gap-2">
                       <button
                         onClick={() => handleViewDetails(job)}
-                        className="text-blue-500 hover:text-blue-700 p-1"
+                        className="text-blue-500 hover:text-blue-700"
                         title="View Details"
                       >
-                        <FiEye size={12} />
+                        <FiEye />
                       </button>
                       <button
                         onClick={() => handleEdit(job)}
-                        className="text-yellow-500 hover:text-yellow-700 p-1"
+                        className="text-yellow-500 hover:text-yellow-700"
                         title="Edit Job"
                       >
-                        <FiEdit2 size={12} />
+                        <FiEdit2 />
                       </button>
                       <button
                         onClick={() => handleDelete(job._id)}
-                        className="text-red-500 hover:text-red-700 p-1"
+                        className="text-red-500 hover:text-red-700"
                         title="Delete Job"
                       >
-                        <FiTrash2 size={12} />
+                        <FiTrash2 />
                       </button>
                       <button
-                        onClick={() => copyToClipboard(job.link, job._id)}
-                        className={`text-xs p-1 ${copiedId === job._id ? "text-emerald-600" : "text-gray-400 hover:text-indigo-600"}`}
-                        title="Copy Application Link"
+                        onClick={() => copyToClipboard(job)}
+                        className={`text-sm ${copiedId === job._id ? "text-emerald-600" : "text-gray-400 hover:text-indigo-600"}`}
+                        title="Copy Formatted Share Template"
                       >
-                        {copiedId === job._id ? <FiCheckCircle size={12} /> : <FiCopy size={12} />}
+                        {copiedId === job._id ? <FiCheckCircle /> : <FiCopy />}
+                      </button>
+                      <button
+                        onClick={() => window.open(`${window.location.origin}${job.link}`, "_blank")}
+                        className="text-gray-400 hover:text-blue-600"
+                        title="Open Job Page"
+                      >
+                        <FiExternalLink />
                       </button>
                     </div>
                   </td>
@@ -321,66 +553,152 @@ function JobPost() {
               ))}
             </tbody>
           </table>
-        ) : (
-          <div className="text-center py-12">
-            <div className="bg-gray-50 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <FiSearch className="text-lg text-gray-200" />
+          
+          {/* Pagination */}
+          {filteredJobs.length > 0 && (
+            <div className="flex flex-col items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 sm:flex-row">
+              {/* Left Side - Showing Info + Select */}
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                <span>Showing</span>
+                <span className="font-medium">
+                  {indexOfFirstItem + 1}
+                </span>
+                <span>to</span>
+                <span className="font-medium">
+                  {Math.min(indexOfLastItem, filteredJobs.length)}
+                </span>
+                <span>of</span>
+                <span className="font-medium">
+                  {filteredJobs.length}
+                </span>
+                <span>results</span>
+
+                {/* Select Dropdown */}
+                <select
+                  value={pagination.limit}
+                  onChange={(e) => {
+                    const newLimit = Number(e.target.value);
+                    handleItemsPerPageChange(newLimit);
+                  }}
+                  className="p-1 ml-2 text-sm border rounded-lg"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              {/* Pagination buttons */}
+              <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={pagination.currentPage === 1}
+                  className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                    pagination.currentPage === 1
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {getPageNumbers().map((page, index) => (
+                    <button
+                      key={index}
+                      onClick={() => typeof page === 'number' ? handlePageClick(page) : null}
+                      disabled={page === "..."}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        page === "..."
+                          ? "text-gray-500 cursor-default"
+                          : pagination.currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleNextPage}
+                  disabled={pagination.currentPage === pagination.totalPages}
+                  className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                    pagination.currentPage === pagination.totalPages
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
             </div>
-            <h2 className="text-sm font-bold text-gray-800">No jobs found</h2>
-            <p className="text-[10px] text-gray-400 mt-1">Try refined search parameters</p>
+          )}
           </div>
+        ) : (
+          <div className="text-center py-20">
+            <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <FiSearch className="text-2xl text-gray-200" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800">No jobs found</h2>
+            <p className="text-xs text-gray-400 mt-1">Try refined search parameters</p>
+          </div>
+    
         )}
       </div>
+  
 
-      {/* Create/Edit Job Modal */}
+      {/* Create Job Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-gray-900/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-4 duration-300 border border-gray-100">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-4 duration-300 border border-gray-100">
             {/* Modal Header */}
-            <div className="px-6 pt-6 pb-3 flex items-center justify-between">
+            <div className="px-8 pt-8 pb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-base text-gray-800">
+                <h2 className="text-xl  text-gray-800">
                   {isEditing ? "Update Job Opening" : "Post New Opening"}
                 </h2>
-                <p className="text-[8px] font-bold uppercase tracking-widest mt-1">
+                <p className="text-[10px] font-bold  uppercase tracking-widest mt-1">
                   {isEditing ? "Modify recruitment details" : "Configure recruitment details"}
                 </p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all"
+                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all"
               >
-                <FiX className="text-sm" />
+                <FiX className="text-lg" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="px-6 pt-2 pb-6 max-h-[70vh] overflow-y-auto no-scrollbar">
+            <div className="p-8 pt-4 max-h-[75vh] overflow-y-auto no-scrollbar">
               {message.text && (
-                <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${message.type === "success"
+                <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${message.type === "success"
                   ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                   : "bg-rose-50 text-rose-600 border border-rose-100"
                   }`}>
-                  {message.type === "success" ? <FiCheckCircle className="text-sm" /> : <FiX className="text-sm" />}
-                  <span className="text-xs font-bold">{message.text}</span>
+                  {message.type === "success" ? <FiCheckCircle className="text-lg" /> : <FiX className="text-lg" />}
+                  <span className="text-sm font-bold">{message.text}</span>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Job Role Dropdown */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">
+                  <div className="space-y-1.5">
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
                       Job Position
                     </label>
                     <div className="relative group">
-                      <FiBriefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" size={12} />
+                      <FiBriefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
                       <select
                         name="role"
                         value={formData.role}
                         onChange={handleChange}
                         required
-                        className="w-full pl-8 pr-8 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-xs text-gray-800 bg-white appearance-none"
+                        className="w-full pl-11 pr-10 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm  text-gray-800 bg-white appearance-none"
                       >
                         <option value="">Select Position</option>
                         {roles.map((role) => (
@@ -389,58 +707,99 @@ function JobPost() {
                           </option>
                         ))}
                       </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-300 group-hover:text-gray-600 transition-colors">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-300 group-hover:text-gray-600 transition-colors">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                       </div>
                     </div>
                   </div>
 
                   {/* Salary */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">
-                      Budget / Package
+                  <div className="space-y-1.5">
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
+                      Salary / Package
                     </label>
                     <div className="relative group">
-                      <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={12} />
+                      <FiDollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" />
                       <input
                         type="text"
                         name="salary"
                         value={formData.salary}
                         onChange={handleChange}
-                        className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-xs text-gray-800"
+                        className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800"
                         placeholder="5 - 12 LPA"
                       />
                     </div>
                   </div>
                 </div>
 
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Experience Dropdown */}
+                  <div>
+                    <label className="text-sm font-medium">Experience</label>
+                    <select
+                      name="experience"
+                      value={formData.experience}
+                      onChange={handleChange}
+                      required
+                      className="w-full p-3 border rounded-xl"
+                    >
+                      <option value="">Select Experience</option>
+                      <option value="Fresher">Fresher</option>
+                      <option value="0-1">0-1 Years</option>
+                      <option value="1-2">1-2 Years</option>
+                      <option value="2-3">2-3 Years</option>
+                      <option value="3-4">3-4 Years</option>
+                      <option value="5+">5+ Years</option>
+                    </select>
+                  </div>
+
+
+                  {/* Location */}
+                  <div>
+                    <label className="text-sm font-medium">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleChange}
+                      required
+                      className="w-full p-3 border rounded-xl"
+                      placeholder="Hyderabad / Remote"
+                    />
+                  </div>
+
+                </div>
+
+
+
                 {/* Skills */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Required Stack
+                <div className="space-y-1.5">
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Required Skills
                   </label>
                   <div className="relative group">
-                    <FiCode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={12} />
+                    <FiCode className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" />
                     <input
                       type="text"
                       name="skills"
                       value={formData.skills}
                       onChange={handleChange}
                       required
-                      className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-xs text-gray-800 placeholder:text-gray-300"
-                      placeholder="React, AWS, TypeScript"
+                      className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm  text-gray-800"
+                      placeholder="Communications skills , Positive Attitude, Ready to learn"
                     />
                   </div>
                 </div>
 
                 {/* Assessments (Multiple Selection) */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Link Assessments
+                <div className="space-y-1.5">
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Link Assessments (Multiple selection supported)
                   </label>
-                  <div className="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto p-2 rounded-lg border border-gray-200 bg-gray-50/30">
+                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-3 rounded-xl border border-gray-200 bg-gray-50/30">
                     {quizzes
-                      .slice()
+                      .slice() // Clone before sort
                       .sort((a, b) => {
                         const roleA = (a.role || a.category || "").toLowerCase();
                         const roleB = (b.role || b.category || "").toLowerCase();
@@ -460,7 +819,7 @@ function JobPost() {
                           <label
                             key={quiz._id}
                             htmlFor={`quiz-${quiz._id}`}
-                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${formData.assessmentIds.includes(quiz._id)
+                            className={`flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all ${formData.assessmentIds.includes(quiz._id)
                               ? "bg-indigo-50 border-indigo-600 text-indigo-700"
                               : "bg-white border-transparent hover:border-gray-100"
                               }`}
@@ -472,22 +831,22 @@ function JobPost() {
                               checked={formData.assessmentIds.includes(quiz._id)}
                               onChange={() => handleAssessmentToggle(quiz._id)}
                             />
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${formData.assessmentIds.includes(quiz._id)
+                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${formData.assessmentIds.includes(quiz._id)
                               ? "bg-indigo-600 border-indigo-600 shadow-sm"
                               : "bg-white border-gray-200"
                               }`}>
                               {formData.assessmentIds.includes(quiz._id) && (
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polyline points="20 6 9 17 4 12" /></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polyline points="20 6 9 17 4 12" /></svg>
                               )}
                             </div>
                             <div className="flex flex-col flex-grow">
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px]">{quiz.topic || quiz.title}</span>
+                                <span className="text-xs">{quiz.topic || quiz.title}</span>
                                 {isSuggested && (
-                                  <span className="bg-emerald-100 text-emerald-700 text-[6px] px-1 py-0.5 rounded-full uppercase tracking-tighter">Matched</span>
+                                  <span className="bg-emerald-100 text-emerald-700 text-[8px] px-2 py-0.5 rounded-full uppercase tracking-tighter">Matched</span>
                                 )}
                               </div>
-                              <span className="text-[6px] font-bold text-gray-400 uppercase tracking-tighter">
+                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">
                                 {quiz.role || quiz.category || "General"} • {quiz.experienceLevel || "All Levels"}
                               </span>
                             </div>
@@ -495,57 +854,57 @@ function JobPost() {
                         );
                       })}
                     {quizzes.length === 0 && (
-                      <div className="text-center py-4">
-                        <FiClipboard className="mx-auto text-2xl text-gray-200 mb-1" />
-                        <p className="text-[8px] text-gray-400 uppercase tracking-[0.2em]">No Assessments Available</p>
-                        <p className="text-[7px] text-gray-400 mt-1">Please create an assessment first.</p>
+                      <div className="text-center py-6">
+                        <FiClipboard className="mx-auto text-3xl text-gray-200 mb-2" />
+                        <p className="text-[10px]  text-gray-400 uppercase tracking-[0.2em]">No Assessments Available</p>
+                        <p className="text-[9px] text-gray-400 mt-1">Please create an assessment in the manager first.</p>
                       </div>
                     )}
                   </div>
-                  {fetchingQuizzes && <p className="text-[8px] text-indigo-500 font-bold ml-1 animate-pulse tracking-tighter">Syncing question banks...</p>}
+                  {fetchingQuizzes && <p className="text-[9px] text-indigo-500 font-bold ml-1 animate-pulse tracking-tighter">Syncing question banks...</p>}
                 </div>
 
-                {/* Responsibilities */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Role Summary
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Job Description
                   </label>
                   <div className="relative group">
-                    <FiList className="absolute left-3 top-3 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={12} />
+                    <FiList className="absolute left-4 top-4 text-gray-300 group-focus-within:text-indigo-600 transition-colors" />
                     <textarea
-                      name="responsibilities"
-                      value={formData.responsibilities}
+                      name="description"
+                      value={formData.description}
                       onChange={handleChange}
                       required
-                      rows="2"
-                      className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-xs font-medium text-gray-800 placeholder:text-gray-300 resize-none"
+                      rows="3"
+                      className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm font-medium text-gray-800 placeholder:text-gray-300 resize-none"
                       placeholder="Outline core responsibilities..."
                     ></textarea>
                   </div>
                 </div>
 
                 {/* Modal Footer */}
-                <div className="pt-4 border-t border-gray-50 flex gap-3">
+                <div className="pt-6 border-t border-gray-50 flex gap-4">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-2 px-4 rounded-lg font-bold text-xs text-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-all border border-transparent"
+                    className="flex-1 py-3.5 px-6 rounded-xl font-bold text-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-all border border-transparent"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className={`flex-[1.5] py-2 px-6 rounded-lg font-bold text-xs text-white shadow-sm transition-all transform active:scale-95 ${loading ? "bg-indigo-300 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-100"
+                    className={`flex-[1.5] py-3.5 px-8 rounded-xl font-bold text-white shadow-sm transition-all transform active:scale-95 ${loading ? "bg-indigo-300 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-100"
                       }`}
                   >
                     {loading ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         <span>Deploying...</span>
                       </div>
                     ) : (
-                      isEditing ? "Update" : "Publish"
+                      isEditing ? "Update Position" : "Publish Position"
                     )}
                   </button>
                 </div>
@@ -557,117 +916,156 @@ function JobPost() {
 
       {/* View Details Modal */}
       {isDetailsModalOpen && selectedJob && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-gray-900/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-4 duration-300 border border-gray-100">
-            {/* Modal Header */}
-            <div className="px-6 pt-6 pb-3 flex items-center justify-between border-b border-gray-50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 flex items-center justify-center bg-indigo-600 text-white rounded-lg shadow-lg shadow-indigo-100">
-                  <FiBriefcase className="text-sm" />
-                </div>
-                <div>
-                  <h2 className="text-base text-gray-800">{selectedJob.role}</h2>
-                  <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Detailed Job Specifications</p>
-                </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-4 duration-300 border border-gray-100">
+
+            {/* Header — SAME STYLE AS CREATE MODAL */}
+            <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl text-gray-800">
+                  {selectedJob.role}
+                </h2>
+                <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-gray-400">
+                  Detailed Job Specifications
+                </p>
               </div>
+
               <button
                 onClick={() => setIsDetailsModalOpen(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all"
+                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all"
               >
-                <FiX className="text-sm" />
+                <FiX className="text-lg" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 max-h-[65vh] overflow-y-auto no-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Compensation</h4>
-                    <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-100/50">
-                      <FiDollarSign className="text-emerald-600 text-sm" />
-                      <span className="text-xs text-gray-800">{selectedJob.salary || "Competitive Salary"}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Assessment Hook(s)</h4>
-                    <div className="space-y-1.5">
-                      {selectedJob.assessmentIds && selectedJob.assessmentIds.length > 0 ? (
-                        selectedJob.assessmentIds.map((assessment, idx) => (
-                          <div key={idx} className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-100/50 hover:bg-amber-100/50 transition-colors">
-                            <FiClipboard className="text-amber-600 text-sm shrink-0" />
-                            <div className="flex flex-col">
-                              <span className="text-[10px] text-gray-800">
-                                {assessment.topic || assessment.title || "Untitled Assessment"}
-                              </span>
-                              <span className="text-[6px] font-bold text-gray-400 uppercase tracking-tighter">
-                                ID: {assessment._id || assessment}
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <FiClipboard className="text-gray-300 text-sm" />
-                          <span className="text-xs font-bold text-gray-400">No Assessment Linked</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Required Stack</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedJob.skills.split(",").map((skill, idx) => (
-                      <span key={idx} className="bg-indigo-50 text-indigo-600 text-[8px] font-bold px-2 py-1 rounded-lg border border-indigo-100/50 uppercase tracking-wider">
-                        {skill.trim()}
-                      </span>
-                    ))}
-                  </div>
+            {/* Body — SAME SPACING SYSTEM */}
+            <div className="p-8 pt-4 max-h-[75vh] overflow-y-auto no-scrollbar space-y-6">
+
+              {/* Salary */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Salary / Package
+                </label>
+                <div className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800">
+                  {selectedJob.salary || "Competitive Salary"}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Core Responsibilities</h4>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 leading-relaxed text-xs text-gray-600 whitespace-pre-line">
-                    {selectedJob.responsibilities}
-                  </div>
+              {/* Experience */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Experience
+                </label>
+                <div className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800">
+                  {selectedJob.experience || "Not Specified"}
                 </div>
-                <div>
-                  <h4 className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Public Access Link</h4>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <code className="flex-1 text-[10px] text-indigo-600 font-bold overflow-hidden text-ellipsis whitespace-nowrap">
-                      {window.location.origin + selectedJob.link}
-                    </code>
-                    <button
-                      onClick={() => copyToClipboard(selectedJob.link, selectedJob._id)}
-                      className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all"
+              </div>
+
+              {/* Location */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Location
+                </label>
+                <div className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800">
+                  {selectedJob.location || "Not Specified"}
+                </div>
+              </div>
+
+              {/* Skills */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Required Skills
+                </label>
+
+                <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-gray-200 bg-gray-50">
+                  {selectedJob.skills.split(",").map((skill, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 text-xs bg-white border border-gray-200 rounded-lg text-gray-700"
                     >
-                      <FiCopy size={12} />
-                    </button>
-                  </div>
+                      {skill.trim()}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-50 flex gap-3">
-              <button
-                onClick={() => {
-                  setIsDetailsModalOpen(false);
-                  handleEdit(selectedJob);
-                }}
-                className="flex-1 flex items-center justify-center gap-1 py-2 px-4 rounded-lg font-bold text-xs bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all"
-              >
-                <FiEdit2 size={10} /> Edit
-              </button>
-              <button
-                onClick={() => setIsDetailsModalOpen(false)}
-                className="flex-1 py-2 px-4 rounded-lg font-bold text-xs bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
-              >
-                Close
-              </button>
+              {/* Assessments */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Linked Assessments
+                </label>
+
+                <div className="space-y-2 p-3 rounded-xl border border-gray-200 bg-gray-50">
+                  {selectedJob.assessmentIds &&
+                    selectedJob.assessmentIds.length > 0 ? (
+                    selectedJob.assessmentIds.map((assessment, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-white rounded-lg border border-gray-200 text-sm text-gray-800"
+                      >
+                        {assessment.topic ||
+                          assessment.title ||
+                          "Untitled Assessment"}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-400">
+                      No Assessment Linked
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Job Description
+                </label>
+                <div className="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 whitespace-pre-line">
+                  {selectedJob.description || selectedJob.responsibilities}
+                </div>
+              </div>
+
+              {/* Public Link */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Public Access Link
+                </label>
+
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50">
+                  <span className="text-sm text-gray-800 truncate">
+                    {window.location.origin + selectedJob.link}
+                  </span>
+
+                  <button
+                    onClick={() => copyToClipboard(selectedJob.link, selectedJob._id)}
+                    className="text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    <FiCopy />
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer — SAME BUTTON STYLE AS CREATE MODAL */}
+              <div className="pt-6 border-t border-gray-100 flex gap-4">
+                <button
+                  onClick={() => {
+                    setIsDetailsModalOpen(false);
+                    handleEdit(selectedJob);
+                  }}
+                  className="flex-1 py-3.5 px-6 rounded-xl font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all"
+                >
+                  Edit Position
+                </button>
+
+                <button
+                  onClick={() => setIsDetailsModalOpen(false)}
+                  className="flex-[1.5] py-3.5 px-8 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all"
+                >
+                  Close View
+                </button>
+              </div>
+
             </div>
           </div>
         </div>

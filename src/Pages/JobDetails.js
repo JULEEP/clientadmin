@@ -1,20 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
-    FaBriefcase, FaListUl, FaCode, FaMoneyBillWave,
-    FaArrowRight, FaClock, FaCheckCircle, FaExclamationTriangle,
-    FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaGraduationCap,
-    FaFileUpload, FaTimes, FaMapMarkerAlt, FaHistory, FaFilePdf
-} from "react-icons/fa";
-import {
-    FiUser, FiMail, FiPhone, FiLock, FiBriefcase, FiDollarSign,
-    FiCheckCircle, FiX, FiArrowRight, FiFileText, FiMapPin, FiAward
-} from "react-icons/fi";
 
-import { API_BASE_URL } from "../config";
+const API_BASE_URL = 'http://localhost:5000/api'
+
 
 const API_BASE = API_BASE_URL;
+
+// ─── Icon helpers (inline SVG to avoid dependency issues) ─────────────────────
+const Icon = ({ d, size = 20, color = "currentColor", className = "" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d={d} />
+    </svg>
+);
+
+const icons = {
+    briefcase: "M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8M16 2v4M8 2v4M3 10h18",
+    location: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z",
+    money: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+    clock: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 5v5l4 2",
+    check: "M20 6L9 17l-5-5",
+    list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+    code: "M10 20l4-16M18 4l4 4-4 4M6 4L2 8l4 4",
+    award: "M12 15l-2 5L6 2l6 3 6-3-4 18-2-5z",
+    star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+    user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+    arrow: "M5 12h14M12 5l7 7-7 7",
+    warn: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01",
+};
 
 function JobDetails() {
     const { id } = useParams();
@@ -22,58 +36,24 @@ function JobDetails() {
     const [job, setJob] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
-    // Form State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCheckingExistence, setIsCheckingExistence] = useState(false);
-    const [candidateExists, setCandidateExists] = useState(false);
-    const [emailChecked, setEmailChecked] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // New state
-    const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState({ type: "", text: "" });
-    const [showPassword, setShowPassword] = useState(false);
     const [hasApplied, setHasApplied] = useState(false);
 
-    const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        mobile: "",
-        password: "", // New Field
-        currentCompany: "",
-        currentCTC: "",
-        expectedCTC: "",
-        resume: null
-    });
-
     useEffect(() => {
-        // Check if already logged in as candidate
-        const token = localStorage.getItem("candidateToken");
-        if (token) {
-            setEmailChecked(true);
-            setCandidateExists(true);
-            setIsLoggedIn(true); // Set isLoggedIn if token exists
-            // We could fetch profile here if we wanted to pre-fill
-        }
-
         const fetchJobDetails = async () => {
             try {
-                // If logged in, check if already applied to this job
                 const token = localStorage.getItem("candidateToken");
                 if (token) {
                     try {
                         const appRes = await axios.get(`${API_BASE}/candidate/applications`, {
                             headers: { Authorization: `Bearer ${token}` }
                         });
-                        const alreadyApplied = appRes.data.some(app =>
-                            (app.jobId?._id || app.jobId) === id
-                        );
+                        const alreadyApplied = appRes.data.some(app => {
+                            const appId = app.jobId?._id || app.jobId;
+                            return appId && appId.toString() === id.toString();
+                        });
                         setHasApplied(alreadyApplied);
-                    } catch (err) {
-                        console.error("Failed to fetch applications for duplicate check", err);
-                    }
+                    } catch (e) { /* silent */ }
                 }
-
                 const response = await axios.get(`${API_BASE}/jobs/view/${id}`);
                 if (response.data.success) {
                     setJob(response.data.jobPost);
@@ -89,178 +69,17 @@ function JobDetails() {
         fetchJobDetails();
     }, [id]);
 
-    const handleEmailCheck = async () => {
-        if (!formData.email) return;
-        setIsCheckingExistence(true);
-        setMessage({ type: "", text: "" });
-        setIsLoggedIn(false); // Reset isLoggedIn on new email check
-        try {
-            const res = await axios.post(`${API_BASE}/candidate/check-existence`, { email: formData.email });
-            if (res.data.exists) {
-                setCandidateExists(true);
-                setShowPassword(true);
-                setEmailChecked(true); // Allow them to see password field
-                setMessage({ type: "info", text: "Existing candidate found. Please enter your password to apply." });
-            } else {
-                setCandidateExists(false);
-                setShowPassword(true);
-                setEmailChecked(true);
-                setMessage({ type: "info", text: "New candidate! Please fill in your details and create a password." });
-            }
-        } catch (err) {
-            console.error("Existence check failed", err);
-            setMessage({ type: "error", text: "Authentication server unreachable. Please try again." });
-        } finally {
-            setIsCheckingExistence(false);
-        }
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleFileChange = (e) => {
-        setFormData(prev => ({ ...prev, resume: e.target.files[0] }));
-    };
-
-    const handleLogin = async () => {
-        setSubmitting(true);
-        try {
-            const loginRes = await axios.post(`${API_BASE}/candidate/login`, {
-                email: formData.email,
-                password: formData.password
-            });
-            const token = loginRes.data.token;
-            // Get candidate ID and details
-            const profileRes = await axios.get(`${API_BASE}/candidate/profile`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            // Pre-fill
-            const [fname, ...lname] = profileRes.data.name.split(' ');
-            setFormData(prev => ({
-                ...prev,
-                firstName: fname,
-                lastName: lname.join(' '),
-                mobile: profileRes.data.phone || prev.mobile,
-                currentCompany: profileRes.data.currentCompany || prev.currentCompany,
-                currentCTC: profileRes.data.currentCTC || prev.currentCTC,
-                expectedCTC: profileRes.data.expectedCTC || prev.expectedCTC
-            }));
-
-            localStorage.setItem("candidateToken", token);
-            localStorage.setItem("candidateId", profileRes.data._id);
-            setIsLoggedIn(true);
-
-            // Check if already applied after login
-            try {
-                const appRes = await axios.get(`${API_BASE}/candidate/applications`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const alreadyApplied = appRes.data.some(app =>
-                    (app.jobId?._id || app.jobId) === id
-                );
-                setHasApplied(alreadyApplied);
-                if (alreadyApplied) {
-                    setMessage({ type: "info", text: "You have already applied for this position." });
-                } else {
-                    setMessage({ type: "success", text: "Details auto-filled! Please review and click Apply." });
-                }
-            } catch (err) {
-                setMessage({ type: "success", text: "Details auto-filled! Please review and click Apply." });
-            }
-
-        } catch (err) {
-            setMessage({ type: "error", text: "Invalid password. Please try again." });
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        if (e) e.preventDefault();
-        setSubmitting(true);
-        setMessage({ type: "", text: "" });
-
-        try {
-            let candidateId = localStorage.getItem("candidateId");
-            let token = localStorage.getItem("candidateToken");
-
-            // Handle Registration login if not already active
-            if (!token && !candidateExists) {
-                // Register
-                const regRes = await axios.post(`${API_BASE}/candidate/register`, {
-                    name: `${formData.firstName} ${formData.lastName}`,
-                    email: formData.email,
-                    password: formData.password,
-                    phone: formData.mobile,
-                    currentCompany: formData.currentCompany,
-                    currentCTC: formData.currentCTC,
-                    expectedCTC: formData.expectedCTC,
-                });
-                token = regRes.data.token;
-                // Get candidate ID
-                const profileRes = await axios.get(`${API_BASE}/candidate/profile`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                candidateId = profileRes.data._id;
-                localStorage.setItem("candidateToken", token);
-                localStorage.setItem("candidateId", candidateId);
-            }
-
-            // Now Submit Application
-            const data = new FormData();
-            data.append("jobId", job._id);
-            data.append("candidateId", candidateId);
-
-            Object.keys(formData).forEach(key => {
-                if (key === 'resume') {
-                    if (formData[key]) data.append("resume", formData[key]);
-                } else if (key !== 'password') { // Don't send password to application endpoint
-                    data.append(key, formData[key]);
-                }
-            });
-
-            const res = await axios.post(`${API_BASE}/applications/submit`, data, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
-
-            if (res.data.success) {
-                setMessage({ type: "success", text: "Application submitted successfully!" });
-
-                if ((job.assessmentIds && job.assessmentIds.length > 0) || job.assessmentId) {
-                    setTimeout(() => {
-                        const firstQuizId = job.assessmentIds?.[0]?._id || job.assessmentIds?.[0] || job.assessmentId?._id || job.assessmentId;
-                        navigate(`/assessment/${job._id}/${res.data.application._id}${firstQuizId ? '/' + (firstQuizId._id || firstQuizId) : ''}`);
-                    }, 2000);
-                } else {
-                    setTimeout(() => {
-                        setIsModalOpen(false);
-                        setEmailChecked(false);
-                        setShowPassword(false);
-                    }, 3000);
-                }
-            }
-        } catch (err) {
-            setMessage({
-                type: "error",
-                text: err.response?.data?.message || "Failed to process application. Please check your credentials."
-            });
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)" }}>
                 <div className="flex flex-col items-center gap-6">
-                    <div className="relative">
-                        <div className="w-16 h-16 border-4 border-indigo-100 rounded-2xl animate-pulse"></div>
-                        <div className="absolute inset-0 w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-2xl animate-spin"></div>
+                    <div className="relative w-16 h-16">
+                        <div className="absolute inset-0 rounded-2xl border-4 border-violet-900 animate-pulse" />
+                        <div className="absolute inset-0 rounded-2xl border-4 border-t-violet-400 border-transparent animate-spin" />
                     </div>
-                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] animate-pulse">Initializing Portal...</p>
+                    <p style={{ color: "#a78bfa", fontSize: 11, fontWeight: 800, letterSpacing: "0.35em", textTransform: "uppercase" }}>
+                        Loading Job Details...
+                    </p>
                 </div>
             </div>
         );
@@ -268,398 +87,281 @@ function JobDetails() {
 
     if (error || !job) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-                <div className="max-w-lg w-full bg-white p-12 rounded-[2.5rem] shadow-2xl shadow-slate-950/5 text-center border border-slate-100 animate-in zoom-in-95 duration-500">
-                    <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                        <FaExclamationTriangle size={32} />
+            <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#f8fafc" }}>
+                <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-12 text-center border border-red-50">
+                    <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <Icon d={icons.warn} color="#ef4444" size={32} />
                     </div>
-                    <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Post Not Found</h2>
-                    <p className="text-slate-500 mb-10 leading-relaxed font-medium">{error || "This job posting may have been archived or the link might be incorrect."}</p>
-                    <a href="/" className="inline-block bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all hover:shadow-xl shadow-indigo-100 transform active:scale-95 uppercase tracking-widest">
-                        Return to Careers
-                    </a>
+                    <h2 className="text-2xl font-black text-gray-900 mb-3">Job Not Found</h2>
+                    <p className="text-gray-500 text-sm mb-8">{error || "This post may have been archived."}</p>
+                    <button onClick={() => navigate(-1)}
+                        style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff" }}
+                        className="px-8 py-3 rounded-xl font-bold text-sm hover:opacity-90 transition-all">
+                        Go Back
+                    </button>
                 </div>
             </div>
         );
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50 pb-20 font-sans">
-            {/* Odoo-Inspired Premium Hero Section */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#1E293B] text-white pt-24 pb-32 px-4">
-                {/* Abstract Background Element */}
-                <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+    const hasAssessment = (job.assessmentIds && job.assessmentIds.length > 0) || job.assessmentId;
+    const postedDate = job.createdAt && !isNaN(new Date(job.createdAt).getTime())
+        ? new Date(job.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })
+        : "Recently";
 
-                <div className="max-w-6xl mx-auto relative z-10">
-                    <div className="flex flex-wrap items-center gap-2 mb-8 animate-in fade-in slide-in-from-left-4 duration-500">
-                        <span className="bg-white/10 backdrop-blur-md text-indigo-100 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/10">
-                            Remote Potential
+    const skills = job.skills
+        ? job.skills.split(",").map(s => s.trim()).filter(Boolean)
+        : [];
+
+    return (
+        <div className="font-sans text-slate-800" style={{ minHeight: "100vh", background: "#f1f5f9" }}>
+
+            {/* ── HERO ─────────────────────────────────────────────── */}
+            <div style={{
+                background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%)",
+                position: "relative",
+                overflow: "hidden",
+                paddingTop: 64,
+                paddingBottom: 80,
+            }}>
+                {/* decorative blobs */}
+                <div style={{ position: "absolute", top: -80, right: -80, width: 400, height: 400, borderRadius: "50%", background: "rgba(139,92,246,0.12)", filter: "blur(60px)", pointerEvents: "none" }} />
+                <div style={{ position: "absolute", bottom: -60, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(99,102,241,0.1)", filter: "blur(50px)", pointerEvents: "none" }} />
+
+                <div className="max-w-6xl mx-auto px-4 relative z-10">
+
+                    {/* back link */}
+                    <button onClick={() => navigate(-1)}
+                        style={{ color: "#a5b4fc", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6, marginBottom: 28, background: "none", border: "none", cursor: "pointer" }}>
+                        ← Back to Jobs
+                    </button>
+
+                    {/* badges */}
+                    <div className="flex flex-wrap gap-2 mb-5">
+                        <span style={{ background: "rgba(99,102,241,0.25)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 8, padding: "4px 14px", fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                            Career Opportunity
                         </span>
-                        <span className="bg-emerald-500/20 backdrop-blur-md text-emerald-400 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2">
-                            <FaCheckCircle className="text-xs" /> Accepting Applications
+                        <span style={{ background: "rgba(16,185,129,0.2)", color: "#6ee7b7", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 8, padding: "4px 14px", fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
+                            <Icon d={icons.check} size={12} color="#6ee7b7" />
+                            Now Hiring
                         </span>
+                        {hasAssessment && (
+                            <span style={{ background: "rgba(251,191,36,0.2)", color: "#fde68a", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 8, padding: "4px 14px", fontSize: 10, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
+                                <Icon d={icons.star} size={12} color="#fde68a" />
+                                Assessment Included
+                            </span>
+                        )}
                     </div>
 
-                    <h1 className="text-4xl md:text-7xl font-black mb-8 tracking-tight leading-[1.1] animate-in fade-in slide-in-from-left-6 duration-700 max-w-4xl">
+                    {/* role title */}
+                    <h1 style={{ color: "#fff", fontSize: "clamp(24px,4vw,40px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 24, maxWidth: 700 }}>
                         {job.role}
                     </h1>
 
-                    <div className="flex flex-wrap items-center gap-6 text-slate-300 font-bold animate-in fade-in slide-in-from-left-8 duration-1000">
-                        <div className="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-2xl backdrop-blur-sm border border-white/5">
-                            <FaMoneyBillWave className="text-emerald-400 text-xl" />
-                            <span className="text-white font-black">{job.salary || "Competitive Market Rate"}</span>
-                        </div>
-                        <div className="flex items-center gap-3 opacity-60">
-                            <FaClock className="text-indigo-400" />
-                            <span className="text-[10px] uppercase tracking-[0.2em]">Posted {new Date(job.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}</span>
+                    {/* meta pills */}
+                    <div className="flex flex-wrap gap-3">
+                        {job.location && (
+                            <div style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon d={icons.location} size={15} color="#a78bfa" />
+                                <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>{job.location}</span>
+                            </div>
+                        )}
+                        {job.salary && (
+                            <div style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon d={icons.money} size={15} color="#34d399" />
+                                <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>{job.salary}</span>
+                            </div>
+                        )}
+                        {job.experience && (
+                            <div style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon d={icons.award} size={15} color="#60a5fa" />
+                                <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>{job.experience} Experience</span>
+                            </div>
+                        )}
+                        <div style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Icon d={icons.clock} size={15} color="#f9a8d4" />
+                            <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 700 }}>Posted {postedDate}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Integration */}
-            <div className="max-w-6xl mx-auto px-4 -mt-16 relative z-20">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Left Column - Details */}
-                    <div className="lg:col-span-3 space-y-8">
-                        <div className="bg-white rounded-3xl shadow-2xl shadow-slate-900/5 overflow-hidden border border-slate-100 p-8 md:p-16">
-                            <div className="space-y-16">
-                                {/* Responsibilities Card */}
-                                <section className="space-y-8">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-                                            <FaListUl className="text-2xl" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Core Responsibilities</h2>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">What the role involves on a daily basis</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-slate-600 leading-[2] whitespace-pre-wrap pl-8 border-l-4 border-indigo-500/10 text-base font-medium">
-                                        {job.responsibilities}
-                                    </div>
-                                </section>
+            {/* ── MAIN CONTENT ─────────────────────────────────────── */}
+            <div className="max-w-6xl mx-auto px-4" style={{ marginTop: -40, position: "relative", zIndex: 10, paddingBottom: 80 }}>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
-                                {/* Skills Card */}
-                                <section className="space-y-8">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm">
-                                            <FaCode className="text-2xl" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Required Expertise</h2>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Key skills and technologies preferred</p>
-                                        </div>
+                    {/* ── Left Column ── */}
+                    <div className="lg:col-span-3 space-y-6">
+
+                        {/* Description Card */}
+                        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 2px 20px rgba(0,0,0,0.06)" }}>
+                            <div style={{ padding: "20px 32px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 12 }}>
+                                <div style={{ width: 40, height: 40, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    <Icon d={icons.list} size={18} color="#fff" />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", margin: 0 }}>Job Description</h2>
+                                    <p style={{ fontSize: 10, color: "#6366f1", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>What you'll be doing</p>
+                                </div>
+                            </div>
+                            <div style={{ padding: "24px 32px" }}>
+                                <div style={{ color: "#475569", lineHeight: 1.9, fontSize: 15, fontWeight: 500, whiteSpace: "pre-wrap", borderLeft: "3px solid #e0e7ff", paddingLeft: 20 }}>
+                                    {job.description || job.responsibilities || "No description provided."}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Skills Card */}
+                        {skills.length > 0 && (
+                            <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 2px 20px rgba(0,0,0,0.06)" }}>
+                                <div style={{ padding: "20px 32px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 12 }}>
+                                    <div style={{ width: 40, height: 40, background: "linear-gradient(135deg,#8b5cf6,#d946ef)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                        <Icon d={icons.code} size={18} color="#fff" />
                                     </div>
-                                    <div className="flex flex-wrap gap-4 pt-2">
-                                        {job.skills.split(',').map((skill, idx) => (
-                                            <span key={idx} className="bg-slate-50 text-slate-700 px-6 py-3.5 rounded-2xl text-[10px] font-black border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 hover:text-indigo-700 transition-all cursor-default uppercase tracking-widest">
-                                                {skill.trim()}
+                                    <div>
+                                        <h2 style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", margin: 0 }}>Required Skills</h2>
+                                        <p style={{ fontSize: 10, color: "#9333ea", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>Key qualifications we're looking for</p>
+                                    </div>
+                                </div>
+                                <div style={{ padding: "24px 32px" }}>
+                                    <div className="flex flex-wrap gap-3">
+                                        {skills.map((skill, idx) => (
+                                            <span key={idx} style={{
+                                                background: "linear-gradient(135deg,#eef2ff,#f3e8ff)",
+                                                color: "#7c3aed",
+                                                border: "1px solid #ddd6fe",
+                                                borderRadius: 10,
+                                                padding: "8px 16px",
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                letterSpacing: "0.05em",
+                                                cursor: "default",
+                                                transition: "all 0.2s",
+                                            }}
+                                                onMouseOver={e => { e.currentTarget.style.background = "linear-gradient(135deg,#6366f1,#8b5cf6)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "transparent"; }}
+                                                onMouseOut={e => { e.currentTarget.style.background = "linear-gradient(135deg,#eef2ff,#f3e8ff)"; e.currentTarget.style.color = "#7c3aed"; e.currentTarget.style.borderColor = "#ddd6fe"; }}>
+                                                {skill}
                                             </span>
                                         ))}
                                     </div>
-                                </section>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Column - Action Card */}
-                    <div className="lg:col-span-1">
-                        <div className="sticky top-24 space-y-6">
-                            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-900/10 border border-slate-100 p-10 text-center group">
-                                <div className="w-24 h-24 flex items-center justify-center bg-indigo-50 rounded-[2rem] mx-auto mb-8 transition-transform group-hover:scale-110 duration-500">
-                                    <FaBriefcase className="text-5xl text-indigo-600" />
                                 </div>
-                                <h3 className="text-2xl font-black text-slate-800 mb-4">Start your journey here</h3>
+                            </div>
+                        )}
 
-                                {((job.assessmentIds && job.assessmentIds.length > 0) || job.assessmentId) && (
-                                    <div className="mb-6 bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl flex items-center justify-center gap-2 border border-amber-100/50">
-                                        <FaClock className="animate-pulse" /> Skill Assessment Included
+                        {/* Location + Experience Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {job.location && (
+                                <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", padding: 28, boxShadow: "0 2px 20px rgba(0,0,0,0.06)" }}>
+                                    <div style={{ width: 44, height: 44, background: "linear-gradient(135deg,#ef4444,#f97316)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                                        <Icon d={icons.location} size={20} color="#fff" />
                                     </div>
-                                )}
-
-                                <p className="text-slate-500 mb-10 leading-relaxed text-sm font-medium">
-                                    {((job.assessmentIds && job.assessmentIds.length > 0) || job.assessmentId)
-                                        ? "Apply today to unlock the technical skill assessment phase."
-                                        : "Join the Timely Health team. Submit your profile for review."}
-                                </p>
-
-                                <button
-                                    onClick={() => setIsModalOpen(true)}
-                                    disabled={hasApplied}
-                                    className={`w-full px-8 py-4 rounded-2xl font-black text-lg transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 ${hasApplied
-                                        ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-                                        : "bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-2xl shadow-indigo-100"
-                                        }`}
-                                >
-                                    {hasApplied ? "Already Applied" : "Apply Now"}
-                                    {!hasApplied && <FaArrowRight className="transition-transform group-hover:translate-x-1" />}
-                                </button>
-
-                                <p className="mt-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Registration takes <span className="text-indigo-600">under 2 mins</span>
-                                </p>
-                            </div>
-
-                            {/* Trust Analytics */}
-                            <div className="bg-slate-800/5 rounded-3xl p-8 flex items-center justify-around border border-slate-200/50">
-                                <div className="text-center">
-                                    <span className="block text-xl font-black text-slate-800">24h</span>
-                                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Response</span>
-                                </div>
-                                <div className="w-px h-10 bg-slate-200"></div>
-                                <div className="text-center">
-                                    <span className="block text-xl font-black text-slate-800">4.8/5</span>
-                                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Rating</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-24 text-center">
-                    <div className="inline-block px-10 py-4 bg-white rounded-full border border-slate-100 text-[9px] font-black uppercase tracking-[0.4em] text-slate-300 shadow-sm">
-                        Timely Health Recruitment Platform
-                    </div>
-                </div>
-            </div>
-
-            {/* Redesigned Application Modal - Styled to match JobPost exactly */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-                    <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-4 duration-300 border border-gray-100">
-                        {/* Modal Header */}
-                        <div className="px-8 pt-8 pb-4 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-xl text-gray-800">
-                                    Apply for {job.role}
-                                </h2>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                                    {emailChecked ? "Complete your profile details" : "Start your recruitment journey"}
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    setIsModalOpen(false);
-                                    setEmailChecked(false);
-                                    setCandidateExists(false);
-                                    setMessage({ type: "", text: "" });
-                                }}
-                                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all"
-                            >
-                                <FiX className="text-lg" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-8 pt-4 max-h-[75vh] overflow-y-auto no-scrollbar">
-                            {message.text && (
-                                <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-4 ${message.type === "success" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                                    message.type === "info" ? "bg-indigo-50 text-indigo-600 border border-indigo-100" :
-                                        "bg-rose-50 text-rose-600 border border-rose-100"
-                                    }`}>
-                                    {message.type === "success" ? <FiCheckCircle className="text-lg shrink-0" /> : <FiX className="text-lg shrink-0" />}
-                                    <span className="text-sm font-bold">{message.text}</span>
+                                    <h3 style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>Work Location</h3>
+                                    <p style={{ fontSize: 15, color: "#475569", fontWeight: 600 }}>{job.location}</p>
                                 </div>
                             )}
-
-                            {!emailChecked ? (
-                                <div className="space-y-5 animate-in fade-in duration-300">
-                                    <div className="space-y-1.5">
-                                        <label className="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
-                                        <div className="relative group">
-                                            <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                            <input
-                                                type="email" name="email" required
-                                                value={formData.email} onChange={handleChange}
-                                                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                placeholder="e.g. candidate@domain.com"
-                                            />
-                                        </div>
+                            {job.experience && (
+                                <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", padding: 28, boxShadow: "0 2px 20px rgba(0,0,0,0.06)" }}>
+                                    <div style={{ width: 44, height: 44, background: "linear-gradient(135deg,#0ea5e9,#6366f1)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                                        <Icon d={icons.user} size={20} color="#fff" />
                                     </div>
-
-                                    <div className="pt-2">
-                                        <button
-                                            onClick={handleEmailCheck}
-                                            disabled={isCheckingExistence || !formData.email}
-                                            className="w-full py-4 px-8 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-100 transition-all transform active:scale-95 disabled:bg-indigo-300 disabled:shadow-none flex items-center justify-center gap-3"
-                                        >
-                                            {isCheckingExistence ? (
-                                                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Validating...</>
-                                            ) : (
-                                                <>Continue to Form <FiArrowRight /></>
-                                            )}
-                                        </button>
-                                    </div>
+                                    <h3 style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>Experience Required</h3>
+                                    <p style={{ fontSize: 15, color: "#475569", fontWeight: 600 }}>{job.experience}</p>
                                 </div>
-                            ) : (
-                                <div className="space-y-5 animate-in slide-in-from-right-4 duration-500">
-                                    {candidateExists && !isLoggedIn ? (
-                                        <div className="space-y-5">
-                                            <div className="space-y-1.5">
-                                                <label className="block mb-1 text-sm font-medium text-gray-700">Existing Account Password</label>
-                                                <div className="relative group">
-                                                    <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                    <input
-                                                        type="password" name="password" required
-                                                        value={formData.password} onChange={handleChange}
-                                                        className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                        placeholder="••••••••"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="pt-2">
-                                                <button
-                                                    onClick={handleLogin}
-                                                    disabled={submitting || !formData.password}
-                                                    className="w-full py-4 px-8 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform active:scale-95 shadow-lg shadow-indigo-100 flex items-center justify-center gap-3"
-                                                >
-                                                    {submitting ? "Authenticating..." : "Login & Auto-fill"}
-                                                </button>
-                                            </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ── Right Column (Sticky Apply) ── */}
+                    <div className="lg:col-span-1">
+                        <div style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+
+                            {/* Apply Card */}
+                            <div style={{ background: "#fff", borderRadius: 24, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 8px 40px rgba(99,102,241,0.12)" }}>
+                                {/* card gradient top bar */}
+                                <div style={{ height: 6, background: "linear-gradient(90deg,#6366f1,#8b5cf6,#d946ef)" }} />
+                                <div style={{ padding: 28, textAlign: "center" }}>
+                                    <div style={{ width: 72, height: 72, background: "linear-gradient(135deg,#eef2ff,#f3e8ff)", borderRadius: 20, border: "1px solid #e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                                        <Icon d={icons.briefcase} size={32} color="#6366f1" />
+                                    </div>
+
+                                    <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>Join Our Team</h3>
+                                    <p style={{ fontSize: 12, color: "#64748b", fontWeight: 500, lineHeight: 1.7, marginBottom: 20 }}>
+                                        {hasAssessment
+                                            ? "Apply and complete a short assessment to start your journey."
+                                            : "Submit your application and our team will be in touch soon."}
+                                    </p>
+
+                                    {hasAssessment && (
+                                        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginBottom: 20 }}>
+                                            <Icon d={icons.star} size={13} color="#f59e0b" />
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: "#92400e", letterSpacing: "0.1em", textTransform: "uppercase" }}>Assessment Enclosed</span>
+                                        </div>
+                                    )}
+
+                                    {hasApplied ? (
+                                        <div style={{ background: "#f1f5f9", borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                                            <Icon d={icons.check} size={16} color="#22c55e" />
+                                            <span style={{ fontSize: 14, fontWeight: 800, color: "#22c55e" }}>Already Applied</span>
                                         </div>
                                     ) : (
-                                        <form onSubmit={handleSubmit} className="space-y-5">
-                                            {!isLoggedIn && (
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">Create Security Password</label>
-                                                    <div className="relative group">
-                                                        <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                        <input
-                                                            type="password" name="password" required
-                                                            value={formData.password} onChange={handleChange}
-                                                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                            placeholder="••••••••"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">First Name</label>
-                                                    <input
-                                                        type="text" name="firstName" required
-                                                        value={formData.firstName} onChange={handleChange}
-                                                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                        placeholder="John"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">Last Name</label>
-                                                    <input
-                                                        type="text" name="lastName" required
-                                                        value={formData.lastName} onChange={handleChange}
-                                                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                        placeholder="Doe"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">Mobile</label>
-                                                    <div className="relative group">
-                                                        <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                        <input
-                                                            type="tel" name="mobile" required
-                                                            value={formData.mobile} onChange={handleChange}
-                                                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                            placeholder="+91..."
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">Company</label>
-                                                    <div className="relative group">
-                                                        <FiBriefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                        <input
-                                                            type="text" name="currentCompany"
-                                                            value={formData.currentCompany} onChange={handleChange}
-                                                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                            placeholder="Current Org"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">Current CTC</label>
-                                                    <div className="relative group">
-                                                        <FiDollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                        <input
-                                                            type="text" name="currentCTC"
-                                                            value={formData.currentCTC} onChange={handleChange}
-                                                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                            placeholder="e.g. 12 LPA"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block mb-1 text-sm font-medium text-gray-700">Expected CTC</label>
-                                                    <div className="relative group">
-                                                        <FiAward className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                        <input
-                                                            type="text" name="expectedCTC"
-                                                            value={formData.expectedCTC} onChange={handleChange}
-                                                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                            placeholder="e.g. 15 LPA"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-1.5">
-                                                <label className="block mb-1 text-sm font-medium text-gray-700">Qualification</label>
-                                                <div className="relative group">
-                                                    <FiFileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors z-10" />
-                                                    <input
-                                                        type="text" name="highestQualification"
-                                                        value={formData.highestQualification} onChange={handleChange}
-                                                        className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm text-gray-800 bg-white"
-                                                        placeholder="Highest Degree"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-1.5">
-                                                <label className="block mb-1 text-sm font-medium text-gray-700">Resume Upload (PDF)</label>
-                                                <input
-                                                    type="file" accept=".pdf,.doc,.docx"
-                                                    onChange={handleFileChange}
-                                                    className="w-full px-4 py-6 rounded-xl border-2 border-dashed border-gray-100 hover:bg-indigo-50/30 hover:border-indigo-200 transition-all font-bold text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
-                                                />
-                                            </div>
-
-                                            <div className="pt-4 flex flex-col md:flex-row gap-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsModalOpen(false)}
-                                                    className="flex-1 py-3.5 px-6 rounded-xl font-bold text-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-all border border-transparent"
-                                                >
-                                                    Discard
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    disabled={submitting}
-                                                    className="flex-[1.5] py-3.5 px-8 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-100 transition-all transform active:scale-95 disabled:bg-indigo-300 flex items-center justify-center gap-3"
-                                                >
-                                                    {submitting ? (
-                                                        <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Sending...</>
-                                                    ) : (
-                                                        <>{candidateExists ? "Confirm & Apply" : "Register & Apply"} <FiArrowRight /></>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </form>
+                                        <button
+                                            onClick={() => navigate(`/applying-job/${id}`)}
+                                            style={{
+                                                width: "100%",
+                                                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: 14,
+                                                padding: "15px 24px",
+                                                fontSize: 14,
+                                                fontWeight: 900,
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                gap: 10,
+                                                transition: "all 0.25s",
+                                                boxShadow: "0 4px 20px rgba(99,102,241,0.35)",
+                                                letterSpacing: "0.02em",
+                                            }}
+                                            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(99,102,241,0.45)"; }}
+                                            onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)"; }}>
+                                            Apply Now
+                                            <Icon d={icons.arrow} size={16} color="#fff" />
+                                        </button>
                                     )}
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Stats Card */}
+                            <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", padding: "20px 24px", display: "flex", justifyContent: "space-around", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+                                <div style={{ textAlign: "center" }}>
+                                    <div style={{ fontSize: 22, fontWeight: 900, color: "#6366f1" }}>24h</div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.1em", textTransform: "uppercase" }}>Response</div>
+                                </div>
+                                <div style={{ width: 1, background: "#f1f5f9" }} />
+                                <div style={{ textAlign: "center" }}>
+                                    <div style={{ fontSize: 22, fontWeight: 900, color: "#8b5cf6" }}>Fast</div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.1em", textTransform: "uppercase" }}>Review</div>
+                                </div>
+                                <div style={{ width: 1, background: "#f1f5f9" }} />
+                                <div style={{ textAlign: "center" }}>
+                                    <div style={{ fontSize: 22, fontWeight: 900, color: "#d946ef" }}>100%</div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.1em", textTransform: "uppercase" }}>Free</div>
+                                </div>
+                            </div>
+
+                            {/* Company note */}
+                            <div style={{ textAlign: "center", padding: "8px 0" }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                                    Timely Health Recruitment
+                                </span>
+                            </div>
                         </div>
                     </div>
+
                 </div>
-            )}
+            </div>
         </div>
     );
 }
