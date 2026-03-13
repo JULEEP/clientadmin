@@ -3,7 +3,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 const AddPatient = () => {
   const navigate = useNavigate();

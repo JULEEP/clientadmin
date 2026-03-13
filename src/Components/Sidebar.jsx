@@ -266,51 +266,49 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
             },
           ];
           
-        case 'bmi':
-          return [
-            {
-              icon: <i className="ri-dashboard-fill"></i>,
-              name: "Dashboard",
-              path: "/bmi-dashboard",
-            },
-            {
-              icon: <i className="ri-heart-pulse-fill"></i>,
-              name: "Health Camps",
-              dropdown: [
-                { name: "All Camps", path: "/health-camps" },
-                { name: "Registrations", path: "/camp-registrations" },
-                { name: "Camp Attendance", path: "/camp-attendance" },
-              ],
-            },
-            {
-              icon: <i className="ri-body-scan-fill"></i>,
-              name: "BMI Records",
-              path: "/bmi-records",
-            },
-            {
-              icon: <i className="ri-file-chart-fill"></i>,
-              name: "Health Reports",
-              path: "/health-reports",
-            },
-            {
-              icon: <i className="ri-leaf-fill"></i>,
-              name: "Wellness",
-              dropdown: [
-                { name: "Wellness Programs", path: "/wellness-programs" },
-                { name: "Health Tips", path: "/health-tips" },
-              ],
-            },
-            {
-              icon: <i className="ri-team-fill"></i>,
-              name: "Camp Members",
-              path: "/camp-members",
-            },
-            {
-              icon: <i className="ri-logout-box-r-line"></i>,
-              name: "Logout",
-              action: handleLogout,
-            },
-          ];
+     case 'bmi':
+  return [
+    {
+      icon: <i className="ri-dashboard-fill"></i>,
+      name: "Dashboard",
+      path: "/bmi-dashboard",
+    },
+    {
+      icon: <i className="ri-questionnaire-fill"></i>,
+      name: "Requests",
+      path: "/requests",
+    },
+    {
+      icon: <i className="ri-calendar-check-fill"></i>,
+      name: "Camp Update",
+      path: "/camp",
+    },
+    {
+      icon: <i className="ri-user-add-fill"></i>,
+      name: "Add Patient",
+      path: "/add-patient",
+    },
+    {
+      icon: <i className="ri-hand-heart-fill"></i>,
+      name: "Partner Panel",
+      path: "/doctor",
+    },
+    {
+      icon: <i className="ri-team-fill"></i>,
+      name: "Our Volunteers",
+      path: "/our-volunteers",
+    },
+    {
+      icon: <i className="ri-user-star-fill"></i>,
+      name: "Join Us",
+      path: "/join-us",
+    },
+    {
+      icon: <i className="ri-logout-box-r-line"></i>,
+      name: "Logout",
+      action: handleLogout,
+    },
+  ];
           
         default:
           return [];

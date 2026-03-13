@@ -39,7 +39,7 @@ function MyCabins() {
   const [selectedCabin, setSelectedCabin] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   
-  // Add Cabin Form States - EXACTLY as per your API code
+  // Add Cabin Form States
   const [addFormData, setAddFormData] = useState({
     name: "",
     description: "",
@@ -84,20 +84,8 @@ function MyCabins() {
         setLoading(true);
         setError("");
         
-        const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-        
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
         const response = await axios.get(
-          `http://localhost:5050/api/cabins/my-cabins/${clientId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          `http://localhost:5050/api/cabins/my-cabins/${clientId}`
         );
 
         if (response.data.success || response.data.cabins) {
@@ -302,14 +290,12 @@ function MyCabins() {
 
     try {
       setEditLoading(true);
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
       
       const response = await axios.put(
         `http://localhost:5050/api/cabins/${selectedCabin._id}`,
         editFormData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
         }
@@ -338,7 +324,7 @@ function MyCabins() {
     }
   };
 
-  // Handle add cabin - EXACTLY as per your API code
+  // Handle add cabin
   const handleAddCabin = async (e) => {
     e.preventDefault();
     
@@ -359,7 +345,7 @@ function MyCabins() {
     data.append("address", addFormData.address);
     data.append("price", addFormData.price);
 
-    // ✅ Send amenities correctly
+    // Send amenities correctly
     data.append("amenities", JSON.stringify(addFormData.amenities));
 
     // Append all images
@@ -368,14 +354,6 @@ function MyCabins() {
     });
 
     try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      
-      if (!token) {
-        alert("Authentication token not found. Please login again.");
-        navigate("/login");
-        return;
-      }
-
       // Log the data being sent (for debugging)
       console.log("Submitting cabin data for client:", clientId);
       console.log("Cabin Name:", addFormData.name);
@@ -388,7 +366,6 @@ function MyCabins() {
         data,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
         }
@@ -419,12 +396,7 @@ function MyCabins() {
       
       // Refresh cabins list
       const fetchResponse = await axios.get(
-        `http://localhost:5050/api/cabins/my-cabins/${clientId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `http://localhost:5050/api/cabins/my-cabins/${clientId}`
       );
 
       if (fetchResponse.data.success || fetchResponse.data.cabins) {
@@ -461,15 +433,8 @@ function MyCabins() {
     }
 
     try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      
       const response = await axios.delete(
-        `http://localhost:5050/api/cabins/${cabinId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `http://localhost:5050/api/cabins/${cabinId}`
       );
 
       if (response.data.success) {
@@ -672,7 +637,7 @@ function MyCabins() {
         </div>
       </div>
 
-      {/* ADD CABIN MODAL - WITH API INTEGRATION */}
+      {/* ADD CABIN MODAL */}
       {addModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setAddModalOpen(false)}></div>
@@ -864,7 +829,7 @@ function MyCabins() {
                 </form>
               </div>
               
-              {/* Footer - Fixed with GRADIENT BUTTON */}
+              {/* Footer - Fixed */}
               <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
                 <div className="flex justify-end gap-3">
                   <button
@@ -895,7 +860,7 @@ function MyCabins() {
         </div>
       )}
 
-      {/* VIEW MODAL - with fixed scroll */}
+      {/* VIEW MODAL */}
       {viewModalOpen && selectedCabin && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setViewModalOpen(false)}></div>
@@ -1009,7 +974,7 @@ function MyCabins() {
         </div>
       )}
 
-      {/* EDIT MODAL - with fixed scroll */}
+      {/* EDIT MODAL */}
       {editModalOpen && selectedCabin && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setEditModalOpen(false)}></div>
@@ -1154,7 +1119,7 @@ function MyCabins() {
                 </div>
               </div>
               
-              {/* Footer - Fixed with GRADIENT BUTTON */}
+              {/* Footer - Fixed */}
               <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
                 <div className="flex justify-end gap-3">
                   <button

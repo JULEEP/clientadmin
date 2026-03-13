@@ -158,6 +158,10 @@ import JobDetails from "./Pages/JobDetails.js";
 import PersonalDocuments from "./Pages/PersonalDocuments.js";
 import CoworkingClientDashboard from "./Pages/CoworkingClientDashboard.js";
 import CoworkingClientBookings from "./Pages/CoworkingClientBookings.js";
+import ClientDoctorDashboard from "./Pages/ClientDoctorDashboard.js";
+import ClientOurVolunteers from "./Pages/ClientOurVolunteers.js";
+import ClientJoinUs from "./Pages/ClientJoinUs.js";
+import ClientApplications from "./Pages/ClientApplications.js";
 
 
 
@@ -339,6 +343,10 @@ function App() {
               <Route path="/personaldocuments" element={<PersonalDocuments />} />
                <Route path="/coworking-dashboard" element={<CoworkingClientDashboard />} />
               <Route path="/all-bookings" element={<CoworkingClientBookings />} />
+              <Route path="/doctor" element={<ClientDoctorDashboard />} />
+              <Route path="/our-volunteers" element={<ClientOurVolunteers />} />
+              <Route path="/join-us" element={<ClientJoinUs />} />
+              <Route path="/requests" element={<ClientApplications />} />
 
             </Routes>
           </AdminLayout>

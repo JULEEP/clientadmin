@@ -21,7 +21,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { generateMedicalReport, generateMedicalReportFile } from "../utils/pdfGenerator";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "http://localhost:5001/api";
 
 /* ================= UTILS ================= */
 const calculateBMI = (weight, heightCm) => {
@@ -305,7 +305,7 @@ export default function CampDashboard() {
     }
 
     const res = await axios.post(
-      "http://localhost:5000/api/reports/upload",
+      "http://localhost:5001/api/reports/upload",
       formData
     );
 
