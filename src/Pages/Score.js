@@ -6,24 +6,10 @@ import {
     FaStar,
     FaTimes,
     FaUserGraduate,
-    FaUserTie,
-    FaPaperPlane,
-    FaEnvelope,
-    FaSave
+    FaUserTie
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-
-const API_BASE_URL = 'http://localhost:5000/api'
-
-const DetailItem = ({ icon, label, value }) => (
-    <div className="flex items-start gap-3">
-        <div className="mt-1 text-blue-500">{icon}</div>
-        <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-            <p className="text-sm font-bold text-gray-800">{value}</p>
-        </div>
-    </div>
-);
+import { API_BASE_URL } from "../utils/config";
 
 const Score = () => {
     const [candidates, setCandidates] = useState([]);
@@ -40,11 +26,11 @@ const Score = () => {
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteForm, setInviteForm] = useState({
-        subject: "Interview Invitation - VEGIFFY",
+        subject: "Interview Invitation - Timely Health",
         time: "",
         interviewMode: "Online",
     });
-    
+
     const [locations, setLocations] = useState([]);
     const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
@@ -54,7 +40,7 @@ const Score = () => {
     });
 
     const [quizzes, setQuizzes] = useState([]);
-    
+
     // Pagination states
     const [pagination, setPagination] = useState({
         currentPage: 1,
@@ -64,14 +50,11 @@ const Score = () => {
     });
 
     const navigate = useNavigate();
-    const clientId = localStorage.getItem("clientId");
+
+    // Get clientId from localStorage
+    const clientId = localStorage.getItem('clientId');
 
     useEffect(() => {
-        if (!clientId) {
-            alert("Please login first!");
-            navigate("/login");
-            return;
-        }
         fetchCandidates();
         fetchQuizzes();
         fetchLocations();
@@ -88,9 +71,17 @@ const Score = () => {
 
     const fetchRoles = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/roles/all?clientId=${clientId}`);
+            const res = await axios.get(`${API_BASE_URL}/roles/all`);
             if (res.data.success) {
-                setRoles(res.data.data || []);
+                const rolesData = res.data.data || [];
+                const formattedRoles = rolesData.map((role, index) => ({
+                    _id: role._id || index,
+                    name: role.roleName || role.name || role
+                }));
+                const uniqueRoles = Array.from(new Set(formattedRoles.map(r => r.name)))
+                    .filter(name => name)
+                    .map(name => formattedRoles.find(r => r.name === name));
+                setRoles(uniqueRoles);
             }
         } catch (err) {
             console.error("Failed to fetch roles:", err);
@@ -99,7 +90,7 @@ const Score = () => {
 
     const fetchLocations = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/location/alllocation?clientId=${clientId}`);
+            const res = await axios.get(`${API_BASE_URL}/location/alllocation`);
             if (res.data?.locations) setLocations(res.data.locations);
         } catch (err) {
             console.error("Failed to fetch locations:", err);
@@ -108,7 +99,7 @@ const Score = () => {
 
     const fetchQuizzes = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/admin/getallquizes?clientId=${clientId}`);
+            const res = await axios.get(`${API_BASE_URL}/admin/getallquizes`);
             if (res.data?.quizzes) setQuizzes(res.data.quizzes);
         } catch (err) {
             console.error("Failed to fetch quizzes:", err);
@@ -118,12 +109,12 @@ const Score = () => {
     const fetchCandidates = async () => {
         try {
             setLoading(true);
-            setError("");
-            const res = await axios.get(`${API_BASE_URL}/applications/all/${clientId}`);
+            const res = await axios.post(`${API_BASE_URL}/applications/all`, { clientId });
             if (res.data.success) {
                 setCandidates(res.data.applications);
             }
         } catch (err) {
+            setError("Failed to fetch candidates score data");
             console.error(err);
         } finally {
             setLoading(false);
@@ -137,7 +128,6 @@ const Score = () => {
             const res = await axios.post(`${API_BASE_URL}/applications/update-score`, {
                 applicationId: id,
                 [field]: numericValue,
-                clientId
             });
             if (res.data.success) {
                 setCandidates((prev) =>
@@ -166,7 +156,6 @@ const Score = () => {
                 interviewSubject: inviteForm.subject,
                 interviewTime: inviteForm.time,
                 interviewMode: inviteForm.interviewMode,
-                clientId
             });
 
             if (res.data.success) {
@@ -181,7 +170,7 @@ const Score = () => {
     };
 
     const handleOpenOfferModal = (candidate) => {
-        navigate(`/sendoffer?id=${candidate._id}&email=${candidate.email}&clientId=${clientId}`);
+        navigate(`/send-offer?id=${candidate._id}&email=${candidate.email}`);
     };
 
     const handleOpenDocsModal = (candidate) => {
@@ -264,7 +253,6 @@ const Score = () => {
         const formData = new FormData();
         formData.append("applicationId", selectedCandidate._id);
         formData.append("agreementsContent", docsForm.agreementsContent);
-        formData.append("clientId", clientId);
         if (docsFile) {
             formData.append("adminAttachment", docsFile);
         }
@@ -288,8 +276,7 @@ const Score = () => {
         try {
             const res = await axios.post(`${API_BASE_URL}/applications/review-documents`, {
                 applicationId: selectedCandidate._id,
-                status,
-                clientId
+                status
             });
             if (res.data.success) {
                 alert(`Documents ${status}`);
@@ -399,7 +386,7 @@ const Score = () => {
     );
 
     return (
-        <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6 lg:p-8">
+        <div className="w-full min-h-screen p-2">
             {/* Filters Section */}
             <div className="p-3 mb-3 bg-white rounded-lg shadow-md">
                 <div className="flex flex-wrap items-center gap-2">
@@ -412,31 +399,22 @@ const Score = () => {
                             placeholder="Search name or role..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-8 pr-8 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                         />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery("")}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                            >
-                                <FaTimes className="text-xs" />
-                            </button>
-                        )}
                     </div>
 
                     {/* Role Filter Button */}
                     <div className="relative" ref={roleDropdownRef}>
                         <button
                             onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                            className={`h-8 px-3 text-xs font-medium rounded-md transition flex items-center gap-1 ${
-                                roleFilter 
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            className={`h-8 px-3 text-xs font-medium rounded-md transition flex items-center gap-1 ${roleFilter
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                            }`}
+                                }`}
                         >
                             <FaBriefcase className="text-xs" /> Role {roleFilter && `: ${roleFilter}`}
                         </button>
-                        
+
                         {/* Role Filter Dropdown */}
                         {isRoleDropdownOpen && (
                             <div className="absolute z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -454,31 +432,29 @@ const Score = () => {
                                         />
                                     </div>
                                 </div>
-                                <div 
+                                <div
                                     onClick={() => {
                                         setRoleFilter('');
                                         setIsRoleDropdownOpen(false);
                                         setRoleSearchQuery('');
                                     }}
-                                    className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-medium ${
-                                        !roleFilter ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                                    }`}
+                                    className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-medium ${!roleFilter ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                        }`}
                                 >
                                     All Roles
                                 </div>
                                 {roles
                                     .filter(r => r.name.toLowerCase().includes(roleSearchQuery.toLowerCase()))
                                     .map((r) => (
-                                        <div 
+                                        <div
                                             key={r._id}
                                             onClick={() => {
                                                 setRoleFilter(r.name);
                                                 setIsRoleDropdownOpen(false);
                                                 setRoleSearchQuery('');
                                             }}
-                                            className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer ${
-                                                roleFilter === r.name ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                                            }`}
+                                            className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer ${roleFilter === r.name ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                                                }`}
                                         >
                                             {r.name}
                                         </div>
@@ -508,14 +484,6 @@ const Score = () => {
                         <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
                             <FaStar className="text-[8px] text-gray-400" />
                         </div>
-                        {scoreFilter > 0 && (
-                            <button
-                                onClick={() => setScoreFilter(0)}
-                                className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                            >
-                                <FaTimes className="text-[8px]" />
-                            </button>
-                        )}
                     </div>
 
                     {/* Date Filter */}
@@ -530,95 +498,80 @@ const Score = () => {
                             onClick={(e) => e.target.showPicker && e.target.showPicker()}
                             className="w-full pl-12 pr-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                         />
-                        {dateFilter && (
-                            <button
-                                onClick={() => setDateFilter("")}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                            >
-                                <FaTimes className="text-xs" />
-                            </button>
-                        )}
                     </div>
 
                     {/* Reset Filters Button */}
                     {(searchQuery || scoreFilter > 0 || roleFilter || dateFilter) && (
                         <button
                             onClick={resetFilters}
-                            className="h-8 px-3 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition flex items-center gap-1"
+                            className="h-8 px-3 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition"
                         >
-                            <FaTimes className="text-xs" /> Clear
+                            Clear
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Error Message - Show above table but don't hide table */}
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center justify-between">
-                    <span>{error}</span>
-                    <button onClick={() => setError("")} className="text-red-500 hover:text-red-700">
-                        <FaTimes />
-                    </button>
-                </div>
-            )}
+            {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
-            {/* Table - Always show header, even with error or no data */}
             <div className="p-0 mb-0 bg-white border shadow-lg rounded-2xl">
-                <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
-                    <table className="min-w-full">
-                        {/* Table Header - Always visible */}
-                        <thead className="text-sm text-left text-white bg-gradient-to-r from-green-500 to-blue-600">
-                            <tr>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">CANDIDATE</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">ROLE</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">APPEARANCE (10)</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">KNOWLEDGE (10)</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">ASSESSMENT SCORE (100)</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">RATING (10)</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">STATUS</th>
-                                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredCandidates.length > 0 ? (
-                                currentItems.map((c) => (
+                {filteredCandidates.length > 0 ? (
+                    <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
+                        <table className="min-w-full">
+                            <thead className="text-sm text-left text-white bg-gradient-to-r from-green-500 to-blue-600">
+                                <tr>
+                                    <th className="py-2 text-center">Candidate</th>
+                                    <th className="py-2 text-center">Role</th>
+                                    <th className="py-2 text-center">Appearance (10)</th>
+                                    <th className="py-2 text-center">Knowledge (10)</th>
+                                    <th className="py-2 text-center">Avg Score (100)</th>
+                                    <th className="py-2 text-center">Rating (10)</th>
+                                    <th className="py-2 text-center">TAT (Days)</th>
+                                    <th className="py-2 text-center">Status</th>
+                                    <th className="py-2 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentItems.map((c) => (
                                     <tr key={c._id} className="border-b hover:bg-gray-50 transition-colors">
-                                        <td className="px-2 py-3 text-center">
+                                        <td className="px-2 py-2 font-medium text-center">
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-gray-800">{c.firstName} {c.lastName}</span>
+                                                <span className="text-gray-900 whitespace-nowrap">{c.firstName} {c.lastName}</span>
                                             </div>
                                         </td>
-                                        <td className="px-2 py-3 text-center">
-                                            <span className="bg-gray-100 text-gray-700 text-[10px] px-2 py-1 rounded uppercase font-bold">
-                                                {c.jobId?.role?.toUpperCase() || "N/A"}
+                                        <td className="px-2 py-2 font-medium text-center">
+                                            <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded uppercase ">
+                                                {c.jobId?.role || "N/A"}
                                             </span>
                                         </td>
-                                        <td className="px-2 py-3 text-center">
+                                        <td className="px-2 py-2 font-medium text-center">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 max="10"
-                                                className="w-16 p-1 border rounded text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                                                className="w-16 p-1 border rounded text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 value={c.appearanceScore || 0}
                                                 onChange={(e) => handleUpdateScore(c._id, "appearanceScore", e.target.value)}
                                             />
                                         </td>
-                                        <td className="px-2 py-3 text-center">
+                                        <td className="px-2 py-2 font-medium text-center">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 max="10"
-                                                className="w-16 p-1 border rounded text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                                                className="w-16 p-1 border rounded text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 value={c.workKnowledge || 0}
                                                 onChange={(e) => handleUpdateScore(c._id, "workKnowledge", e.target.value)}
                                             />
                                         </td>
-                                        <td className="px-2 py-3 text-center">
+                                        <td className="px-2 py-2 font-medium text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <input
                                                     type="number"
                                                     min="0"
                                                     max="100"
+                                                    data-gramm="false"
+                                                    spellcheck="false"
                                                     className="w-16 p-1 border rounded text-xs text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     value={c.technicalScore || 0}
                                                     onChange={(e) => handleUpdateScore(c._id, "technicalScore", e.target.value)}
@@ -626,15 +579,16 @@ const Score = () => {
                                                 {c.assessmentResults && c.assessmentResults.length > 0 && (
                                                     <button
                                                         onClick={() => handleOpenAssessmentDetails(c)}
-                                                        className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-all border border-indigo-100"
+                                                        className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-indigo-100 group flex items-center justify-center transform hover:-translate-y-0.5"
                                                         title="View Detailed Answers"
                                                     >
-                                                        <FaEye size={12} />
+                                                        <FaEye size={14} className="group-hover:scale-110 transition-transform" />
                                                     </button>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-2 py-3 text-center">
+
+                                        <td className="px-2 py-2 font-medium text-center">
                                             <select
                                                 className="p-1 border rounded text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 value={c.overallRating || 0}
@@ -643,148 +597,183 @@ const Score = () => {
                                                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => <option key={v} value={v}>{v}</option>)}
                                             </select>
                                         </td>
-                                        <td className="px-2 py-3 text-center">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                                c.status === "Selected" ? "bg-green-100 text-green-700" :
-                                                c.status === "Interview" ? "bg-blue-100 text-blue-700" :
-                                                c.status === "Rejected" ? "bg-red-100 text-red-700" :
-                                                "bg-yellow-100 text-yellow-700"
-                                            }`}>
-                                                {c.status || "PENDING"}
-                                            </span>
+                                        <td className="px-2 py-2 font-medium text-center">
+                                            {c.appliedAt && c.offerSentAt ? (
+                                                <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg text-xs font-bold border border-indigo-100 shadow-sm">
+                                                    {Math.ceil(Math.abs(new Date(c.offerSentAt) - new Date(c.appliedAt)) / (1000 * 60 * 60 * 24))} Days
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400 text-[10px] font-black italic uppercase tracking-widest">
+                                                    {c.status === "Selected" && !c.offerSentAt ? "Pending Offer" : "---"}
+                                                </span>
+                                            )}
                                         </td>
-                                        <td className="px-2 py-3 text-center">
+                                        <td className="px-2 py-2 font-medium text-center">
+                                            <select
+                                                className={`p-1 border rounded text-[10px] font-bold ${c.status === "Selected" ? "text-green-600 bg-green-50" :
+                                                    c.status === "Interview" ? "text-blue-600 bg-blue-50" : 
+                                                    c.status === "Shortlisted" ? "text-purple-600 bg-purple-50" :
+                                                    "text-gray-600 bg-gray-50"
+                                                    }`}
+                                                value={c.status || "Pending"}
+                                                onChange={(e) => handleUpdateScore(c._id, "status", e.target.value)}
+                                            >
+                                                <option value="Pending">PENDING</option>
+                                                <option value="Shortlisted">SHORTLISTED</option>
+                                                <option value="Interview">INTERVIEW</option>
+                                                <option value="Selected">SELECTED</option>
+                                                <option value="Rejected">REJECTED</option>
+                                            </select>
+                                            {(c.interviewStatus === 'Invited' || c.interviewStatus === 'Rescheduled') && c.candidateInterviewStatus && (
+                                                <div className="mt-1">
+                                                    <span className={`text-[8px] font-black uppercase tracking-tighter ${c.candidateInterviewStatus === 'Confirmed' ? 'text-indigo-600 bg-indigo-50 px-1 rounded' : c.candidateInterviewStatus === 'Declined' ? 'text-rose-600 bg-rose-50 px-1 rounded' : 'text-amber-600 bg-amber-50 px-1 rounded'}`}>
+                                                        {c.candidateInterviewStatus === 'Pending' ? 'Awaiting Conf' : `Interview ${c.candidateInterviewStatus}`}
+                                                    </span>
+                                                    {c.candidateInterviewNote && (
+                                                        <div className="text-[8px] text-gray-400 italic truncate max-w-[80px] mx-auto mt-0.5" title={c.candidateInterviewNote}>
+                                                            "{c.candidateInterviewNote}"
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-2 py-2 text-center">
                                             <div className="flex justify-center gap-2">
                                                 {c.status === "Interview" && (
                                                     <button
                                                         onClick={() => handleOpenInviteModal(c)}
-                                                        className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all text-[10px] font-bold flex items-center gap-1"
+                                                        className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-1.5 text-[10px] font-black tracking-widest shadow-md hover:shadow-lg hover:-translate-y-0.5"
                                                     >
-                                                        <FaPaperPlane size={10} /> INVITE
+                                                        INVITE
                                                     </button>
                                                 )}
 
                                                 {c.status === "Selected" && (
-                                                    <>
+                                                    <div className="flex gap-2">
                                                         <button
                                                             onClick={() => handleOpenOfferModal(c)}
-                                                            className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white rounded-lg hover:from-purple-600 hover:to-fuchsia-700 transition-all text-[10px] font-bold flex items-center gap-1"
+                                                            className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white rounded-xl hover:from-purple-600 hover:to-fuchsia-700 transition-all duration-300 flex items-center justify-center gap-1.5 text-[10px] font-black tracking-widest shadow-md hover:shadow-lg hover:-translate-y-0.5"
                                                         >
-                                                            <FaEnvelope size={10} /> OFFER
+                                                            OFFER
                                                         </button>
+
                                                         <button
                                                             onClick={() => handleOpenDocsModal(c)}
-                                                            className={`px-3 py-1.5 text-white rounded-lg transition-all text-[10px] font-bold flex items-center gap-1 ${
-                                                                c.docReviewStatus === "Accepted"
-                                                                    ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                                                                    : c.docReviewStatus === "Pending"
-                                                                        ? "bg-gradient-to-r from-amber-500 to-orange-500"
-                                                                        : "bg-gradient-to-r from-slate-700 to-slate-800"
-                                                            }`}
+                                                            className={`px-3 py-1.5 text-white rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 text-[10px] font-black tracking-widest shadow-md hover:shadow-lg hover:-translate-y-0.5 ${c.docReviewStatus === "Accepted"
+                                                                ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                                                                : c.docReviewStatus === "Pending"
+                                                                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                                                                    : "bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900"
+                                                                }`}
                                                         >
-                                                            <FaSave size={10} /> DOCS
+                                                            DOCS
                                                         </button>
-                                                    </>
+                                                    </div>
+                                                )}
+
+                                                {c.status === "Shortlisted" && (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleUpdateScore(c._id, "status", "Interview")}
+                                                            className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 flex items-center justify-center gap-1.5 text-[10px] font-black tracking-widest shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                                                        >
+                                                            MOVE TO INTERVIEW
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                // No Data Message inside table body
-                                <tr>
-                                    <td colSpan="8" className="px-4 py-12 text-center">
-                                        <div className="flex flex-col items-center">
-                                            <FaUserGraduate className="text-4xl text-gray-300 mb-3" />
-                                            <h3 className="text-lg font-medium text-gray-800">No candidates found</h3>
-                                            <p className="text-sm text-gray-500">No candidates matching your filters.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                    
-                    {/* Pagination - Only show if there are results */}
-                    {filteredCandidates.length > 0 && (
-                        <div className="flex flex-col items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 sm:flex-row">
-                            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                                <span>Showing</span>
-                                <span className="font-medium">
-                                    {indexOfFirstItem + 1}
-                                </span>
-                                <span>to</span>
-                                <span className="font-medium">
-                                    {Math.min(indexOfLastItem, filteredCandidates.length)}
-                                </span>
-                                <span>of</span>
-                                <span className="font-medium">
-                                    {filteredCandidates.length}
-                                </span>
-                                <span>results</span>
+                                ))}
+                            </tbody>
+                        </table>
 
-                                <select
-                                    value={pagination.limit}
-                                    onChange={(e) => {
-                                        const newLimit = Number(e.target.value);
-                                        handleItemsPerPageChange(newLimit);
-                                    }}
-                                    className="p-1 ml-2 text-sm border rounded-lg"
-                                >
-                                    <option value={5}>5</option>
-                                    <option value={10}>10</option>
-                                    <option value={20}>20</option>
-                                    <option value={50}>50</option>
-                                </select>
-                            </div>
+                        {/* Pagination */}
+                        {filteredCandidates.length > 0 && (
+                            <div className="flex flex-col items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 sm:flex-row">
+                                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                                    <span>Showing</span>
+                                    <span className="font-medium">
+                                        {indexOfFirstItem + 1}
+                                    </span>
+                                    <span>to</span>
+                                    <span className="font-medium">
+                                        {Math.min(indexOfLastItem, filteredCandidates.length)}
+                                    </span>
+                                    <span>of</span>
+                                    <span className="font-medium">
+                                        {filteredCandidates.length}
+                                    </span>
+                                    <span>results</span>
 
-                            <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                                <button
-                                    onClick={handlePrevPage}
-                                    disabled={pagination.currentPage === 1}
-                                    className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                                        pagination.currentPage === 1
-                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                                    }`}
-                                >
-                                    Previous
-                                </button>
-
-                                <div className="flex items-center gap-1">
-                                    {getPageNumbers().map((page, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => typeof page === 'number' ? handlePageClick(page) : null}
-                                            disabled={page === "..."}
-                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                page === "..."
-                                                    ? "text-gray-500 cursor-default"
-                                                    : pagination.currentPage === page
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                                            }`}
-                                        >
-                                            {page}
-                                        </button>
-                                    ))}
+                                    <select
+                                        value={pagination.limit}
+                                        onChange={(e) => {
+                                            const newLimit = Number(e.target.value);
+                                            handleItemsPerPageChange(newLimit);
+                                        }}
+                                        className="p-1 ml-2 text-sm border rounded-lg"
+                                    >
+                                        <option value={5}>5</option>
+                                        <option value={10}>10</option>
+                                        <option value={20}>20</option>
+                                        <option value={50}>50</option>
+                                    </select>
                                 </div>
 
-                                <button
-                                    onClick={handleNextPage}
-                                    disabled={pagination.currentPage === pagination.totalPages}
-                                    className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                                        pagination.currentPage === pagination.totalPages
-                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                                    }`}
-                                >
-                                    Next
-                                </button>
+                                <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                                    <button
+                                        onClick={handlePrevPage}
+                                        disabled={pagination.currentPage === 1}
+                                        className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${pagination.currentPage === 1
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                            }`}
+                                    >
+                                        Previous
+                                    </button>
+
+                                    <div className="flex items-center gap-1">
+                                        {getPageNumbers().map((page, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => typeof page === 'number' ? handlePageClick(page) : null}
+                                                disabled={page === "..."}
+                                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${page === "..."
+                                                        ? "text-gray-500 cursor-default"
+                                                        : pagination.currentPage === page
+                                                            ? "bg-blue-600 text-white"
+                                                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                                    }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={handleNextPage}
+                                        disabled={pagination.currentPage === pagination.totalPages}
+                                        className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${pagination.currentPage === pagination.totalPages
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                            }`}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
                             </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="p-12 text-center">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                            <FaUserGraduate size={32} />
                         </div>
-                    )}
-                </div>
+                        <h3 className="text-lg font-medium text-gray-800">No candidates found</h3>
+                        <p className="text-gray-500">No candidates matching your filters.</p>
+                    </div>
+                )}
             </div>
 
             {/* Invite Modal */}
@@ -792,7 +781,7 @@ const Score = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <FaPaperPlane className="text-blue-600" /> Send Interview Invite
+                            Send Interview Invite
                         </h2>
                         <p className="text-sm text-gray-600 mb-4">
                             Candidate: <span className="font-semibold text-gray-800">{selectedCandidate?.firstName} {selectedCandidate?.lastName}</span>
@@ -858,13 +847,12 @@ const Score = () => {
                     <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold flex items-center gap-2">
-                                <FaSave className="text-indigo-600" /> Document Management
+                                Document Management
                             </h2>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                                selectedCandidate?.docReviewStatus === 'Accepted' ? 'bg-green-100 text-green-700' :
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${selectedCandidate?.docReviewStatus === 'Accepted' ? 'bg-green-100 text-green-700' :
                                 selectedCandidate?.docReviewStatus === 'Pending' ? 'bg-orange-100 text-orange-700' :
-                                'bg-gray-100 text-gray-700'
-                            }`}>
+                                    'bg-gray-100 text-gray-700'
+                                }`}>
                                 Review Status: {selectedCandidate?.docReviewStatus}
                             </span>
                         </div>
@@ -901,7 +889,6 @@ const Score = () => {
                                     <h3 className="text-sm font-black uppercase text-blue-800 mb-3 tracking-wider">Step 2: Review Uploaded Document</h3>
                                     <div className="flex items-center justify-between bg-white p-3 rounded border border-blue-100 mb-4">
                                         <div className="flex items-center gap-2">
-                                            <FaPaperPlane className="text-blue-500" />
                                             <span className="text-xs font-bold text-slate-700">Signed_Agreement.pdf</span>
                                         </div>
                                         <button

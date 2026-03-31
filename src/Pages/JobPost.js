@@ -17,9 +17,7 @@ import {
   FiX
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-
-const API_BASE_URL = 'http://localhost:5000/api'
-
+import { API_BASE_URL } from "../utils/config";
 
 const API_BASE = API_BASE_URL;
 
@@ -31,6 +29,8 @@ function JobPost() {
     experience: "",
     location: "",
     salary: "",
+    department: "",
+    vacancies: 1,
     assessmentIds: [],
   });
 
@@ -63,15 +63,12 @@ function JobPost() {
   });
   
   const navigate = useNavigate();
-  const clientId = localStorage.getItem("clientId");
+  
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId');
 
   // Fetch Jobs, Quizzes and Roles
   useEffect(() => {
-    if (!clientId) {
-      alert("Please login first!");
-      navigate("/login");
-      return;
-    }
     fetchJobs();
     fetchQuizzes();
     fetchRoles();
@@ -88,7 +85,7 @@ function JobPost() {
   const fetchJobs = async () => {
     setFetchingJobs(true);
     try {
-      const res = await axios.get(`${API_BASE}/jobs/all/${clientId}`);
+      const res = await axios.post(`${API_BASE}/jobs/all`, { clientId });
       if (res.data.success) {
         setJobs(res.data.jobPosts);
       }
@@ -102,7 +99,7 @@ function JobPost() {
   const fetchQuizzes = async () => {
     setFetchingQuizzes(true);
     try {
-      const res = await axios.get(`${API_BASE}/admin/getallquizes?clientId=${clientId}`).catch(() => null);
+      const res = await axios.get(`${API_BASE}/admin/getallquizes`).catch(() => null);
       if (res && res.data && res.data.quizzes) {
         setQuizzes(res.data.quizzes);
       }
@@ -115,9 +112,13 @@ function JobPost() {
 
   const fetchRoles = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/roles/all?clientId=${clientId}`);
+      const res = await axios.post(`${API_BASE}/jobs/all`, { clientId });
       if (res.data.success) {
-        setRoles(res.data.data);
+        // Extract unique roles from jobs
+        const jobData = res.data.jobPosts || [];
+        const roleNames = Array.from(new Set(jobData.map(job => job.role))).filter(Boolean);
+        const uniqueRoles = roleNames.map((name, index) => ({ _id: index, name }));
+        setRoles(uniqueRoles);
       }
     } catch (err) {
       console.error("Failed to fetch roles:", err);
@@ -134,6 +135,8 @@ function JobPost() {
       salary: "",
       experience: "",
       location: "",
+      department: "",
+      vacancies: "",
       assessmentIds: [],
     });
     setIsModalOpen(true);
@@ -143,12 +146,14 @@ function JobPost() {
     setIsEditing(true);
     setCurrentJobId(job._id);
     setFormData({
-      role: job.role,
-      description: job.description,
-      skills: job.skills,
-      salary: job.salary,
-      location: job.location,
-      experience: job.experience,
+      role: job.role || "",
+      description: job.description || "",
+      skills: job.skills || "",
+      salary: job.salary || "",
+      location: job.location || "",
+      experience: job.experience || "",
+      department: job.department || "",
+      vacancies: job.vacancies ?? 1,
       assessmentIds: job.assessmentIds ? job.assessmentIds.map(a => a._id || a) : [],
     });
     setIsModalOpen(true);
@@ -197,19 +202,22 @@ function JobPost() {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, forcedStatus = null) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: "", text: "" });
 
     try {
       let response;
-      const data = { ...formData, clientId };
-      
+      const dataToSend = { ...formData, clientId };
+      if (forcedStatus) {
+        dataToSend.status = forcedStatus;
+      }
+
       if (isEditing) {
-        response = await axios.put(`${API_BASE}/jobs/${currentJobId}`, data);
+        response = await axios.put(`${API_BASE}/jobs/${currentJobId}`, dataToSend);
       } else {
-        response = await axios.post(`${API_BASE}/jobs/create`, data);
+        response = await axios.post(`${API_BASE}/jobs/create`, dataToSend);
       }
 
       if (response.data.success) {
@@ -221,6 +229,8 @@ function JobPost() {
           salary: "",
           experience: "",
           location: "",
+          department: "",
+          vacancies: 1,
           assessmentIds: [],
         });
         fetchJobs();
@@ -347,7 +357,7 @@ Direct Apply Link: ${fullLink}`;
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6 lg:p-8">
+    <div className="w-full min-h-screen p-2">
       {/* Filters Section */}
       <div className="p-3 mb-3 bg-white rounded-lg shadow-md">
         <div className="flex flex-wrap items-center gap-2">
@@ -448,7 +458,7 @@ Direct Apply Link: ${fullLink}`;
 
           {/* Post New Job Button */}
           <button
-            onClick={openCreateModal}
+            onClick={() => navigate("/post-new-job")}
             className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition flex items-center gap-1 ml-auto"
           >
             <FiPlus className="text-xs" />
@@ -479,80 +489,90 @@ Direct Apply Link: ${fullLink}`;
           <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
             <table className="min-w-full">
               <thead className="text-sm text-left text-white bg-gradient-to-r from-green-500 to-blue-600">
-              <tr>
+                <tr>
                 <th className="py-2 text-center">Job Role</th>
                 <th className="py-2 text-center">Skills</th>
                 <th className="py-2 text-center">Salary</th>
                 <th className="py-2 text-center">Assessments</th>
+                <th className="py-2 text-center">Status</th>
                 <th className="py-2 text-center">Actions</th>
               </tr>
-            </thead>
-            <tbody>
-              {currentItems.map((job) => (
-                <tr key={job._id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-2 py-2 font-medium text-center">
-                    <div className="text-gray-900 whitespace-nowrap">{job.role}</div>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <div className="text-gray-600">
-                      {job.skills.split(",").map((skill, idx) => (
-                        <span key={idx} className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded uppercase ">
-                          {skill.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span className="text-emerald-600 ">{job.salary || "Competitive"}</span>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] ">
-                      {job.assessmentIds?.length || 0} Linked
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => handleViewDetails(job)}
-                        className="text-blue-500 hover:text-blue-700"
-                        title="View Details"
-                      >
-                        <FiEye />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(job)}
-                        className="text-yellow-500 hover:text-yellow-700"
-                        title="Edit Job"
-                      >
-                        <FiEdit2 />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(job._id)}
-                        className="text-red-500 hover:text-red-700"
-                        title="Delete Job"
-                      >
-                        <FiTrash2 />
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(job)}
-                        className={`text-sm ${copiedId === job._id ? "text-emerald-600" : "text-gray-400 hover:text-indigo-600"}`}
-                        title="Copy Formatted Share Template"
-                      >
-                        {copiedId === job._id ? <FiCheckCircle /> : <FiCopy />}
-                      </button>
-                      <button
-                        onClick={() => window.open(`${window.location.origin}${job.link}`, "_blank")}
-                        className="text-gray-400 hover:text-blue-600"
-                        title="Open Job Page"
-                      >
-                        <FiExternalLink />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {currentItems.map((job) => (
+                  <tr key={job._id} className="border-b hover:bg-gray-50 transition-colors">
+                    <td className="px-2 py-2 font-medium text-center">
+                      <div className="text-gray-900 whitespace-nowrap">{job.role}</div>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <div className="text-gray-600">
+                        {job.skills.split(",").map((skill, idx) => (
+                          <span key={idx} className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded uppercase ">
+                            {skill.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <span className="text-emerald-600 ">{job.salary || "Competitive"}</span>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] ">
+                        {job.assessmentIds?.length || 0} Linked
+                      </span>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        job.status === 'active' ? 'bg-emerald-50 text-emerald-600' :
+                        job.status === 'draft' ? 'bg-amber-50 text-amber-600' :
+                        'bg-gray-100 text-gray-500'
+                      }`}>
+                        {job.status || 'active'}
+                      </span>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => handleViewDetails(job)}
+                          className="text-blue-500 hover:text-blue-700"
+                          title="View Details"
+                        >
+                          <FiEye />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(job)}
+                          className="text-yellow-500 hover:text-yellow-700"
+                          title="Edit Job"
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(job._id)}
+                          className="text-red-500 hover:text-red-700"
+                          title="Delete Job"
+                        >
+                          <FiTrash2 />
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(job)}
+                          className={`text-sm ${copiedId === job._id ? "text-emerald-600" : "text-gray-400 hover:text-indigo-600"}`}
+                          title="Copy Formatted Share Template"
+                        >
+                          {copiedId === job._id ? <FiCheckCircle /> : <FiCopy />}
+                        </button>
+                        <button
+                          onClick={() => window.open(`${window.location.origin}${job.link}`, "_blank")}
+                          className="text-gray-400 hover:text-blue-600"
+                          title="Open Job Page"
+                        >
+                          <FiExternalLink />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           
           {/* Pagination */}
           {filteredJobs.length > 0 && (
@@ -771,7 +791,32 @@ Direct Apply Link: ${fullLink}`;
 
                 </div>
 
-
+                {/* Department + Vacancies */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-sm font-medium">Department</label>
+                    <input
+                      type="text"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className="w-full p-3 border rounded-xl"
+                      placeholder="e.g. Engineering"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Vacancies</label>
+                    <input
+                      type="number"
+                      name="vacancies"
+                      value={formData.vacancies}
+                      onChange={handleChange}
+                      min="1"
+                      className="w-full p-3 border rounded-xl"
+                      placeholder="e.g. 3"
+                    />
+                  </div>
+                </div>
 
                 {/* Skills */}
                 <div className="space-y-1.5">
@@ -799,7 +844,7 @@ Direct Apply Link: ${fullLink}`;
                   </label>
                   <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-3 rounded-xl border border-gray-200 bg-gray-50/30">
                     {quizzes
-                      .slice() // Clone before sort
+                      .slice()
                       .sort((a, b) => {
                         const roleA = (a.role || a.category || "").toLowerCase();
                         const roleB = (b.role || b.category || "").toLowerCase();
@@ -846,7 +891,7 @@ Direct Apply Link: ${fullLink}`;
                                   <span className="bg-emerald-100 text-emerald-700 text-[8px] px-2 py-0.5 rounded-full uppercase tracking-tighter">Matched</span>
                                 )}
                               </div>
-                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">
+                              <span className="text-[8px] font-bold  uppercase tracking-tighter">
                                 {quiz.role || quiz.category || "General"} • {quiz.experienceLevel || "All Levels"}
                               </span>
                             </div>
@@ -864,7 +909,7 @@ Direct Apply Link: ${fullLink}`;
                   {fetchingQuizzes && <p className="text-[9px] text-indigo-500 font-bold ml-1 animate-pulse tracking-tighter">Syncing question banks...</p>}
                 </div>
 
-                {/* Description */}
+                {/* Job Description */}
                 <div className="space-y-1.5">
                   <label className="block mb-1 text-sm font-medium text-gray-700">
                     Job Description
@@ -893,7 +938,16 @@ Direct Apply Link: ${fullLink}`;
                     Discard
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={(e) => handleSubmit(e, "draft")}
+                    disabled={loading}
+                    className="flex-1 py-3.5 px-6 rounded-xl font-bold text-indigo-600 border border-indigo-600 hover:bg-indigo-50 transition-all"
+                  >
+                    {loading ? "Saving..." : "Save Draft"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, "active")}
                     disabled={loading}
                     className={`flex-[1.5] py-3.5 px-8 rounded-xl font-bold text-white shadow-sm transition-all transform active:scale-95 ${loading ? "bg-indigo-300 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-100"
                       }`}
@@ -904,7 +958,7 @@ Direct Apply Link: ${fullLink}`;
                         <span>Deploying...</span>
                       </div>
                     ) : (
-                      isEditing ? "Update Position" : "Publish Position"
+                      isEditing ? "Update & Publish" : "Publish Position"
                     )}
                   </button>
                 </div>
@@ -919,7 +973,7 @@ Direct Apply Link: ${fullLink}`;
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-[2px] animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom-4 duration-300 border border-gray-100">
 
-            {/* Header — SAME STYLE AS CREATE MODAL */}
+            {/* Header */}
             <div className="px-8 pt-8 pb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl text-gray-800">
@@ -934,12 +988,28 @@ Direct Apply Link: ${fullLink}`;
                 onClick={() => setIsDetailsModalOpen(false)}
                 className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all"
               >
-                <FiX className="text-lg" />
+                Close
               </button>
             </div>
 
-            {/* Body — SAME SPACING SYSTEM */}
+            {/* Body */}
             <div className="p-8 pt-4 max-h-[75vh] overflow-y-auto no-scrollbar space-y-6">
+
+              {/* Department + Vacancies row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">Department</label>
+                  <div className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800">
+                    {selectedJob.department || "Not Specified"}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">Vacancies</label>
+                  <div className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800">
+                    {selectedJob.vacancies ?? "Not Specified"}
+                  </div>
+                </div>
+              </div>
 
               {/* Salary */}
               <div className="space-y-1.5">
@@ -1038,15 +1108,17 @@ Direct Apply Link: ${fullLink}`;
                   </span>
 
                   <button
-                    onClick={() => copyToClipboard(selectedJob.link, selectedJob._id)}
+                    onClick={() =>
+                      copyToClipboard(selectedJob.link, selectedJob._id)
+                    }
                     className="text-sm text-gray-600 hover:text-gray-900"
                   >
-                    <FiCopy />
+                    Copy
                   </button>
                 </div>
               </div>
 
-              {/* Footer — SAME BUTTON STYLE AS CREATE MODAL */}
+              {/* Footer */}
               <div className="pt-6 border-t border-gray-100 flex gap-4">
                 <button
                   onClick={() => {

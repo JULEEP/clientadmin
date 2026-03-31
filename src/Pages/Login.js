@@ -51,7 +51,9 @@ import {
   Shield,
   Lock,
   Key,
-  Heart
+  Heart,
+  Users as UsersIcon,
+  Calendar as CalendarIcon
 } from "lucide-react";
 
 const LoginPage = () => {
@@ -77,43 +79,84 @@ const LoginPage = () => {
     }
   }, []);
 
-  // Product icons mapping - UPDATED to include camp mapping to health/bmi
-  const productIcons = {
-    // Attendance Section
-    attendance: { icon: <Clock size={24} />, color: "bg-blue-100 text-blue-600", name: "Attendance", section: "attendance" },
+  // Product icons mapping based on product name from database
+  const getProductIcon = (productName) => {
+    const name = productName.toLowerCase();
     
-    // Co-Working Section
-    coworking: { icon: <Building2 size={24} />, color: "bg-purple-100 text-purple-600", name: "Co-Working", section: "coworking" },
-    
-    // BMI & Health Section - Multiple keywords map to same section
-    bmi: { icon: <Heart size={24} />, color: "bg-red-100 text-red-600", name: "BMI", section: "bmi" },
-    health: { icon: <HeartPulse size={24} />, color: "bg-red-100 text-red-600", name: "Health", section: "bmi" },
-    wellness: { icon: <HeartPulse size={24} />, color: "bg-red-100 text-red-600", name: "Wellness", section: "bmi" },
-    camp: { icon: <Users size={24} />, color: "bg-red-100 text-red-600", name: "Health Camp", section: "bmi" }, // CAMP maps to BMI section
-    
-    // Other products
-    hr: { icon: <Users size={24} />, color: "bg-pink-100 text-pink-600", name: "HR", section: "hr" },
-    projects: { icon: <Briefcase size={24} />, color: "bg-orange-100 text-orange-600", name: "Projects", section: "projects" },
-    appointments: { icon: <CalendarDays size={24} />, color: "bg-green-100 text-green-600", name: "Appointments", section: "appointments" },
-    support: { icon: <MessageCircle size={24} />, color: "bg-indigo-100 text-indigo-600", name: "Support", section: "support" },
-    security: { icon: <ShieldCheck size={24} />, color: "bg-teal-100 text-teal-600", name: "Security", section: "security" },
-    accounting: { icon: <FileText size={24} />, color: "bg-amber-100 text-amber-600", name: "Accounting", section: "accounting" },
-    knowledge: { icon: <BookOpen size={24} />, color: "bg-cyan-100 text-cyan-600", name: "Knowledge", section: "knowledge" },
-    sign: { icon: <User size={24} />, color: "bg-lime-100 text-lime-600", name: "Sign", section: "sign" },
-    crm: { icon: <Users size={24} />, color: "bg-rose-100 text-rose-600", name: "CRM", section: "crm" },
-    studio: { icon: <Settings size={24} />, color: "bg-fuchsia-100 text-fuchsia-600", name: "Studio", section: "studio" },
-    subscriptions: { icon: <Coffee size={24} />, color: "bg-violet-100 text-violet-600", name: "Subscriptions", section: "subscriptions" },
-    rental: { icon: <Home size={24} />, color: "bg-yellow-100 text-yellow-600", name: "Rental", section: "rental" },
-    pos: { icon: <DollarSign size={24} />, color: "bg-orange-100 text-orange-600", name: "POS", section: "pos" },
-    discuss: { icon: <MessageCircle size={24} />, color: "bg-emerald-100 text-emerald-600", name: "Discuss", section: "discuss" },
-    documents: { icon: <FileText size={24} />, color: "bg-sky-100 text-sky-600", name: "Documents", section: "documents" },
-    project: { icon: <Briefcase size={24} />, color: "bg-indigo-100 text-indigo-600", name: "Project", section: "project" },
-    timesheets: { icon: <Clock size={24} />, color: "bg-purple-100 text-purple-600", name: "Timesheets", section: "timesheets" },
-    purchase: { icon: <ShoppingBag size={24} />, color: "bg-pink-100 text-pink-600", name: "Purchase", section: "purchase" },
-    inventory: { icon: <Package size={24} />, color: "bg-blue-100 text-blue-600", name: "Inventory", section: "inventory" },
-    manufacturing: { icon: <Settings size={24} />, color: "bg-green-100 text-green-600", name: "Manufacturing", section: "manufacturing" },
-    sales: { icon: <TrendingUp size={24} />, color: "bg-red-100 text-red-600", name: "Sales", section: "sales" },
-    dashboard: { icon: <Activity size={24} />, color: "bg-yellow-100 text-yellow-600", name: "Dashboard", section: "dashboard" }
+    // Attendance System
+    if (name.includes('attendance')) {
+      return { icon: <Clock size={24} />, color: "bg-blue-100 text-blue-600", name: "Attendance System", section: "attendance" };
+    }
+    // Recruitment
+    if (name.includes('recruitment')) {
+      return { icon: <Briefcase size={24} />, color: "bg-indigo-100 text-indigo-600", name: "Recruitment", section: "recruitment" };
+    }
+    // Coworking Space
+    if (name.includes('coworking')) {
+      return { icon: <Building2 size={24} />, color: "bg-purple-100 text-purple-600", name: "Coworking Space", section: "coworking" };
+    }
+    // Training Camp
+    if (name.includes('camp') || name.includes('training')) {
+      return { icon: <UsersIcon size={24} />, color: "bg-red-100 text-red-600", name: "Training Camp", section: "camp" };
+    }
+    // HR
+    if (name.includes('hr') || name.includes('human resource')) {
+      return { icon: <Users size={24} />, color: "bg-pink-100 text-pink-600", name: "HR Management", section: "hr" };
+    }
+    // Projects
+    if (name.includes('project')) {
+      return { icon: <Briefcase size={24} />, color: "bg-orange-100 text-orange-600", name: "Project Management", section: "projects" };
+    }
+    // Appointments
+    if (name.includes('appointment')) {
+      return { icon: <CalendarDays size={24} />, color: "bg-green-100 text-green-600", name: "Appointments", section: "appointments" };
+    }
+    // Wellness
+    if (name.includes('wellness') || name.includes('health')) {
+      return { icon: <HeartPulse size={24} />, color: "bg-red-100 text-red-600", name: "Wellness", section: "wellness" };
+    }
+    // BMI
+    if (name.includes('bmi')) {
+      return { icon: <Heart size={24} />, color: "bg-red-100 text-red-600", name: "BMI Management", section: "bmi" };
+    }
+    // Support
+    if (name.includes('support')) {
+      return { icon: <MessageCircle size={24} />, color: "bg-indigo-100 text-indigo-600", name: "Support", section: "support" };
+    }
+    // Security
+    if (name.includes('security')) {
+      return { icon: <ShieldCheck size={24} />, color: "bg-teal-100 text-teal-600", name: "Security", section: "security" };
+    }
+    // Accounting
+    if (name.includes('accounting')) {
+      return { icon: <FileText size={24} />, color: "bg-amber-100 text-amber-600", name: "Accounting", section: "accounting" };
+    }
+    // Knowledge
+    if (name.includes('knowledge')) {
+      return { icon: <BookOpen size={24} />, color: "bg-cyan-100 text-cyan-600", name: "Knowledge", section: "knowledge" };
+    }
+    // CRM
+    if (name.includes('crm')) {
+      return { icon: <Users size={24} />, color: "bg-rose-100 text-rose-600", name: "CRM", section: "crm" };
+    }
+    // POS
+    if (name.includes('pos') || name.includes('point of sale')) {
+      return { icon: <DollarSign size={24} />, color: "bg-orange-100 text-orange-600", name: "Point of Sale", section: "pos" };
+    }
+    // Inventory
+    if (name.includes('inventory')) {
+      return { icon: <Package size={24} />, color: "bg-blue-100 text-blue-600", name: "Inventory", section: "inventory" };
+    }
+    // Sales
+    if (name.includes('sales')) {
+      return { icon: <TrendingUp size={24} />, color: "bg-green-100 text-green-600", name: "Sales", section: "sales" };
+    }
+    // Dashboard
+    if (name.includes('dashboard')) {
+      return { icon: <Activity size={24} />, color: "bg-yellow-100 text-yellow-600", name: "Dashboard", section: "dashboard" };
+    }
+    // Default
+    return { icon: <Rocket size={24} />, color: "bg-gray-100 text-gray-600", name: productName, section: productName.toLowerCase() };
   };
 
   const handleSubmit = async (e) => {
@@ -178,17 +221,28 @@ const LoginPage = () => {
         body: JSON.stringify(clientPayload),
       });
 
-      const clientData = await clientResponse.json();
+      const clientDataResponse = await clientResponse.json();
 
       if (clientResponse.ok) {
+        // Format the client data properly
+        const formattedClient = {
+          ...clientDataResponse.client,
+          accessibleProducts: clientDataResponse.client.accessibleProducts.map(product => ({
+            ...product,
+            // If product has name field, use it, otherwise use productId name
+            displayName: product.name || (product.productId?.name) || "Unknown Product",
+            productCode: product.code || product.productId?.code || "N/A"
+          }))
+        };
+        
         // Store client data
-        setClientData(clientData.client);
-        localStorage.setItem('clientToken', clientData.token);
-        localStorage.setItem('clientId', clientData.client._id);
-        localStorage.setItem('clientCustomId', clientData.client.clientId);
-        localStorage.setItem('clientName', clientData.client.name);
-        localStorage.setItem('clientEmail', clientData.client.email);
-        localStorage.setItem('clientData', JSON.stringify(clientData.client));
+        setClientData(formattedClient);
+        localStorage.setItem('clientToken', clientDataResponse.token);
+        localStorage.setItem('clientId', formattedClient._id);
+        localStorage.setItem('clientCustomId', formattedClient.clientId);
+        localStorage.setItem('clientName', formattedClient.name);
+        localStorage.setItem('clientEmail', formattedClient.email);
+        localStorage.setItem('clientData', JSON.stringify(formattedClient));
         localStorage.setItem('userRole', 'client');
         localStorage.setItem('showProducts', 'true');
         
@@ -197,7 +251,7 @@ const LoginPage = () => {
         return;
       }
 
-      throw new Error(clientData.message || empData.message || adminData.message || 'Invalid credentials');
+      throw new Error(clientDataResponse.message || empData.message || adminData.message || 'Invalid credentials');
 
     } catch (err) {
       setError(err.message);
@@ -207,16 +261,17 @@ const LoginPage = () => {
   };
 
   const handleProductClick = (product) => {
-    // Get the section mapping for the product
-    const productInfo = productIcons[product.toLowerCase()];
-    const sectionToNavigate = productInfo?.section || product.toLowerCase();
+    // Get the product info
+    const productInfo = getProductIcon(product.displayName || product.name);
+    const sectionToNavigate = productInfo.section;
     
     // Navigate to dashboard with product info
     localStorage.removeItem('showProducts'); // Clear products page flag
     navigate('/dashboard', { 
       state: { 
         client: clientData,
-        selectedProduct: sectionToNavigate, // Use the mapped section
+        selectedProduct: sectionToNavigate,
+        selectedProductName: productInfo.name,
         userType: 'client'
       } 
     });
@@ -273,70 +328,98 @@ const LoginPage = () => {
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-500">Email</p>
-                <p className="text-sm font-medium text-gray-800">{clientData.email}</p>
+                <p className="text-sm font-medium text-gray-800 truncate">{clientData.email}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-500">Company</p>
-                <p className="text-sm font-medium text-gray-800">{clientData.companyName}</p>
+                <p className="text-sm font-medium text-gray-800">{clientData.companyName || 'N/A'}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-500">Location</p>
-                <p className="text-sm font-medium text-gray-800">{clientData.location}</p>
+                <p className="text-sm font-medium text-gray-800">
+                  {clientData.location ? (typeof clientData.location === 'string' ? 
+                    JSON.parse(clientData.location)?.city || 'N/A' : 
+                    clientData.location.city || 'N/A') : 'N/A'}
+                </p>
               </div>
             </div>
           </motion.div>
 
           {/* Products Grid */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-          >
-            {clientData.accessibleProducts.map((product, index) => {
-              // Normalize product name to lowercase for lookup
-              const productKey = product.toLowerCase();
-              const productInfo = productIcons[productKey] || {
-                icon: <Rocket size={24} />,
-                color: "bg-gray-100 text-gray-600",
-                name: product.charAt(0).toUpperCase() + product.slice(1),
-                section: productKey
-              };
+          {clientData.accessibleProducts && clientData.accessibleProducts.length > 0 ? (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+            >
+              {clientData.accessibleProducts.map((product, index) => {
+                // Get product name from the response
+                const productName = product.name || product.displayName || "Unknown Product";
+                const productInfo = getProductIcon(productName);
+                
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleProductClick(product)}
+                    className="bg-white rounded-xl p-4 text-center shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                  >
+                    {/* Gradient overlay on hover */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${productInfo.color.replace('100', '500')} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                    
+                    <div className={`w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-xl ${productInfo.color} group-hover:scale-110 transition-transform duration-300`}>
+                      {productInfo.icon}
+                    </div>
+                    
+                    <p className="text-sm font-medium text-gray-700 group-hover:text-[#714b67] transition">
+                      {productInfo.name}
+                    </p>
+                    
+                    {product.price > 0 && (
+                      <p className="text-xs text-green-600 mt-1 font-semibold">
+                        ₹{product.price}
+                      </p>
+                    )}
+                    
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Click to access
+                    </p>
 
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleProductClick(product)}
-                  className="bg-white rounded-xl p-4 text-center shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                    {/* Shine effect on hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine"></div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="text-center py-12"
+            >
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 max-w-md mx-auto">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-800 mb-2">No Products Found</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  You haven't purchased any products yet.
+                </p>
+                <button
+                  onClick={handleBackToLogin}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm hover:shadow-lg transition-all"
                 >
-                  {/* Gradient overlay on hover */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${productInfo.color.replace('100', '500')} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                  
-                  <div className={`w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-xl ${productInfo.color} group-hover:scale-110 transition-transform duration-300`}>
-                    {productInfo.icon}
-                  </div>
-                  
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-[#714b67] transition">
-                    {productInfo.name}
-                  </p>
-                  
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Click to access
-                  </p>
-
-                  {/* Shine effect on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine"></div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
+                  Back to Login
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Bottom actions */}
           <motion.div 

@@ -162,6 +162,11 @@ import ClientDoctorDashboard from "./Pages/ClientDoctorDashboard.js";
 import ClientOurVolunteers from "./Pages/ClientOurVolunteers.js";
 import ClientJoinUs from "./Pages/ClientJoinUs.js";
 import ClientApplications from "./Pages/ClientApplications.js";
+import PostNewJob from "./Pages/PostNewJob.js";
+import JobPositionsStatus from "./Pages/JobPositionsStatus.js";
+import NewAssessment from "./Pages/NewAssessment.js";
+import AllMedicalCertificate from "./Pages/AllMedicalCertificate.js";
+import RegisterPage from "./Pages/Register.js";
 
 
 
@@ -174,6 +179,7 @@ function App() {
       {/* <Route path="/land" element={<LandingPage />} /> */}
       {/* <Route path="/" element={<LoginPage />} /> */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<RegisterPage />} />
                     <Route path="/jobs/:id" element={<JobDetails />} />
       <Route path="/admin-login" element={<Login />} />
       <Route path="/employee-login" element={<Login />} />
@@ -316,7 +322,9 @@ function App() {
               <Route path="/payroll" element={<PayRoll />} />
               <Route path="/useractivity" element={<UserActivity />} />
               <Route path="/useraccess" element={<UserAccessManagement />} />
-                <Route path="/jobpost" element={<JobPost />} />
+                <Route path="/job-post" element={<JobPost />} />
+                 <Route path="/post-new-job" element={<PostNewJob />} />
+                <Route path="/job-positions-status" element={<JobPositionsStatus />} />
               <Route path="/score" element={<Score />} />
               <Route path="/sendoffer" element={<SendOffer />} />
               <Route path="/job-applicants" element={<JobApplicants />} />
@@ -340,13 +348,15 @@ function App() {
               <Route path="/all-expensives" element={<AllExpensives />} />
               <Route path="/allbookings" element={<AllBookings />}></Route>
               <Route path="/permissions" element={<Permissions />}></Route>
-              <Route path="/personaldocuments" element={<PersonalDocuments />} />
+              <Route path="/personal-documents" element={<PersonalDocuments />} />
                <Route path="/coworking-dashboard" element={<CoworkingClientDashboard />} />
               <Route path="/all-bookings" element={<CoworkingClientBookings />} />
               <Route path="/doctor" element={<ClientDoctorDashboard />} />
               <Route path="/our-volunteers" element={<ClientOurVolunteers />} />
               <Route path="/join-us" element={<ClientJoinUs />} />
               <Route path="/requests" element={<ClientApplications />} />
+             <Route path="/new-assessment" element={<NewAssessment />} />
+              <Route path="/all-medical-certificates" element={<AllMedicalCertificate />} />
 
             </Routes>
           </AdminLayout>

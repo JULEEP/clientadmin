@@ -58,6 +58,11 @@ const HomePage = () => {
     navigate("/login")
   }
 
+  // Handle register click - navigate to register
+  const handleRegisterClick = () => {
+    navigate("/register")
+  }
+
   // Odoo jaisi services
   const services = [
     { name: "HR", icon: <Users size={20} strokeWidth={1.5} />, color: "bg-pink-100 text-pink-600", gradient: "from-pink-500 to-pink-600" },
@@ -133,7 +138,10 @@ const HomePage = () => {
               Sign in
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#714b67] transition-all group-hover:w-full"></span>
             </button>
-            <button onClick={() => navigate("/login")} className="px-4 py-1.5 bg-gradient-to-r from-[#714b67] to-[#8a6b8a] text-white rounded-md text-sm hover:shadow-lg hover:scale-105 transition-all duration-300">Try it free</button>
+            <button onClick={handleRegisterClick} className="px-4 py-1.5 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-md text-sm hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-1">
+              <UserPlus size={14} />
+              Register
+            </button>
             <button className="md:hidden p-1" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -147,6 +155,9 @@ const HomePage = () => {
             <a href="#" className="block py-1.5 text-sm text-gray-600 hover:text-[#714b67]">Pricing</a>
             <a href="#" className="block py-1.5 text-sm text-gray-600 hover:text-[#714b67]">Help</a>
             <button onClick={() => navigate("/login")} className="block py-1.5 text-sm text-gray-600 hover:text-[#714b67]">Sign in</button>
+            <button onClick={handleRegisterClick} className="block py-1.5 text-sm bg-gradient-to-r from-green-600 to-green-500 text-white rounded-md px-3 text-center">
+              Register
+            </button>
           </div>
         )}
       </nav>
@@ -177,8 +188,9 @@ const HomePage = () => {
           <p className="text-lg md:text-xl text-gray-600 mb-8">Simple, efficient, yet affordable!</p>
           
           <div className="flex flex-wrap gap-4 justify-center mb-8">
-            <button onClick={() => navigate("/login")} className="group px-6 py-3 bg-gradient-to-r from-[#714b67] to-[#8a6b8a] text-white rounded-lg text-sm md:text-base hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center">
-              Start now - It's free
+            <button onClick={handleRegisterClick} className="group px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg text-sm md:text-base hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center">
+              <UserPlus className="mr-2 w-4 h-4" />
+              Register now
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
             <button className="group px-6 py-3 border-2 border-[#714b67] text-[#714b67] rounded-lg text-sm md:text-base hover:bg-[#714b67] hover:text-white transition-all duration-300 flex items-center">

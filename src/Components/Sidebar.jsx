@@ -45,7 +45,7 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       "/dashboard": "Dashboard",
       
       // Attendance Section
-      "/attendance-dashboard": "Attendance Dashboard",
+      "/attendance-dashboard": "Dashboard",
       "/employeelist": "Employees",
       "/attedancesummary": "Attendance Summary",
       "/attendancelist": "Attendance Records",
@@ -58,6 +58,8 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       "/shift": "Shifts",
       "/shiftlist": "Shifts",
       "/locationlist": "Locations",
+      "/useractivity": "User Activity",
+      "/useraccess": "User Access",
       
       // Coworking Section
       "/coworking-dashboard": "Coworking Dashboard",
@@ -80,41 +82,30 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       "/wellness-programs": "Wellness Programs",
       "/health-tips": "Health Tips",
       
+      // Recruitment Section
+      "/recruitment-dashboard": "Recruitment Dashboard",
+      "/job-post": "Jobs",
+      "/post-new-job": "Post New Job",
+      "/job-positions-status": "Job Positions Status",
+      "/job-applicants": "Job Applicants",
+      "/score": "Score Board",
+      "/assessment-manager": "Assessments",
+      "/new-assessment": "New Assessment",
+      "/personal-documents": "Personal Documents",
+      "/employee-journey": "Employee Journey",
+      "/employee-resignation": "Resignations",
+      "/all-medical-certificates": "Medical Certificates",
+      
       // Other sections
-      "/useractivity": "User Activity",
-      "/useraccess": "User Access",
-      "/jobpost": "Job Posts",
       "/addemployee": "Add Employee",
       "/editemployee": "Edit Employee",
       "/departmentdashboard": "Departments",
       "/roledashboard": "Roles",
       "/addlocation": "Add Location",
       "/empmanagement": "Employee Management",
-      "/job-applicants": "Job Applicants",
-      "/score": "Score Board",
-      "/assessment-manager": "Assessments",
-      "/documents": "Documents",
-      "/personaldocuments": "Documents",
-      "/leaves-report": "Leaves Report",
-      "/recruitment-dashboard": "Recruitment Dashboard",
-      "/employee-journey": "Employee Journey"
+      "/leaves-report": "Leaves Report"
     };
     return pathMap[path] || "Dashboard";
-  };
-
-  // Desktop Hover Expand
-  const handleMouseEnterSidebar = () => {
-    if (!isMobile && setIsCollapsed) {
-      setIsCollapsed(false);
-    }
-  };
-
-  const handleMouseLeaveSidebar = () => {
-    if (!isMobile && setIsCollapsed) {
-      if (!openDropdown) {
-        setIsCollapsed(true);
-      }
-    }
   };
 
   // Tooltip position
@@ -131,9 +122,6 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
     e.preventDefault();
     
     if (openDropdown !== name) {
-      if (!isMobile && isCollapsed && setIsCollapsed) {
-        setIsCollapsed(false);
-      }
       setOpenDropdown(name);
     } else {
       setOpenDropdown(null);
@@ -232,6 +220,16 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
               path: "/locationlist",
             },
             {
+              icon: <i className="ri-history-fill"></i>,
+              name: "User Activity",
+              path: "/useractivity",
+            },
+            {
+              icon: <i className="ri-shield-user-fill"></i>,
+              name: "User Access",
+              path: "/useraccess",
+            },
+            {
               icon: <i className="ri-logout-box-r-line"></i>,
               name: "Logout",
               action: handleLogout,
@@ -266,49 +264,108 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
             },
           ];
           
-     case 'bmi':
-  return [
-    {
-      icon: <i className="ri-dashboard-fill"></i>,
-      name: "Dashboard",
-      path: "/bmi-dashboard",
-    },
-    {
-      icon: <i className="ri-questionnaire-fill"></i>,
-      name: "Requests",
-      path: "/requests",
-    },
-    {
-      icon: <i className="ri-calendar-check-fill"></i>,
-      name: "Camp Update",
-      path: "/camp",
-    },
-    {
-      icon: <i className="ri-user-add-fill"></i>,
-      name: "Add Patient",
-      path: "/add-patient",
-    },
-    {
-      icon: <i className="ri-hand-heart-fill"></i>,
-      name: "Partner Panel",
-      path: "/doctor",
-    },
-    {
-      icon: <i className="ri-team-fill"></i>,
-      name: "Our Volunteers",
-      path: "/our-volunteers",
-    },
-    {
-      icon: <i className="ri-user-star-fill"></i>,
-      name: "Join Us",
-      path: "/join-us",
-    },
-    {
-      icon: <i className="ri-logout-box-r-line"></i>,
-      name: "Logout",
-      action: handleLogout,
-    },
-  ];
+        case 'bmi':
+          return [
+            {
+              icon: <i className="ri-dashboard-fill"></i>,
+              name: "Dashboard",
+              path: "/bmi-dashboard",
+            },
+            {
+              icon: <i className="ri-questionnaire-fill"></i>,
+              name: "Requests",
+              path: "/requests",
+            },
+            {
+              icon: <i className="ri-calendar-check-fill"></i>,
+              name: "Camp Update",
+              path: "/camp",
+            },
+            {
+              icon: <i className="ri-user-add-fill"></i>,
+              name: "Add Patient",
+              path: "/add-patient",
+            },
+            {
+              icon: <i className="ri-hand-heart-fill"></i>,
+              name: "Partner Panel",
+              path: "/doctor",
+            },
+            {
+              icon: <i className="ri-team-fill"></i>,
+              name: "Our Volunteers",
+              path: "/our-volunteers",
+            },
+            {
+              icon: <i className="ri-user-star-fill"></i>,
+              name: "Join Us",
+              path: "/join-us",
+            },
+            {
+              icon: <i className="ri-logout-box-r-line"></i>,
+              name: "Logout",
+              action: handleLogout,
+            },
+          ];
+          
+        case 'recruitment':
+          return [
+            {
+              icon: <i className="ri-dashboard-fill"></i>,
+              name: "Dashboard",
+              path: "/recruitment-dashboard",
+            },
+            {
+              icon: <i className="ri-briefcase-fill"></i>,
+              name: "Jobs",
+              dropdown: [
+                { name: "All Jobs", path: "/job-post" },
+                { name: "Post New Job", path: "/post-new-job" },
+                { name: "Job Positions Status", path: "/job-positions-status" },
+              ],
+            },
+            {
+              icon: <i className="ri-user-add-fill"></i>,
+              name: "Applicants",
+              path: "/job-applicants",
+            },
+            {
+              icon: <i className="ri-bar-chart-fill"></i>,
+              name: "Scores",
+              path: "/score",
+            },
+            {
+              icon: <i className="ri-quill-pen-fill"></i>,
+              name: "Assessments",
+              dropdown: [
+                { name: "All Assessments", path: "/assessment-manager" },
+                { name: "New Assessment", path: "/new-assessment" },
+              ],
+            },
+            {
+              icon: <i className="ri-file-text-fill"></i>,
+              name: "Documents",
+              dropdown: [
+                { name: "Personal Documents", path: "/personal-documents" },
+                { name: "Medical Certificates", path: "/all-medical-certificates" },
+              ],
+            },
+            {
+              icon: <i className="ri-road-map-fill"></i>,
+              name: "Employee Journey",
+              path: "/employee-journey",
+            },
+            {
+              icon: <i className="ri-user-minus-fill"></i>,
+              name: "Resignations",
+              path: "/employee-resignation",
+            },
+            {
+              icon: <i className="ri-logout-box-r-line"></i>,
+              name: "Logout",
+              action: handleLogout,
+            },
+          ];
           
         default:
           return [];
@@ -358,6 +415,16 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
         path: "/all-expensives"
       },
       {
+        icon: <i className="ri-time-fill"></i>,
+        name: "Shifts",
+        path: "/shift",
+      },
+      {
+        icon: <i className="ri-map-pin-2-fill"></i>,
+        name: "Locations",
+        path: "/locationlist",
+      },
+      {
         icon: <i className="ri-history-fill"></i>,
         name: "User Activity",
         path: "/useractivity",
@@ -372,23 +439,18 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
         name: "Recruitment",
         dropdown: [
           { name: "Dashboard", path: "/recruitment-dashboard" },
-          { name: "Job Posts", path: "/jobpost" },
+          { name: "Jobs", path: "/job-post" },
+          { name: "Post New Job", path: "/post-new-job" },
+          { name: "Job Positions Status", path: "/job-positions-status" },
           { name: "Job Applicants", path: "/job-applicants" },
           { name: "Score Board", path: "/score" },
           { name: "Assessments", path: "/assessment-manager" },
-          { name: "Documents", path: "/personaldocuments" },
+          { name: "New Assessment", path: "/new-assessment" },
+          { name: "Documents", path: "/personal-documents" },
+          { name: "Medical Certificates", path: "/all-medical-certificates" },
           { name: "Employee Journey", path: "/employee-journey" },
+          { name: "Resignations", path: "/employee-resignation" },
         ],
-      },
-      {
-        icon: <i className="ri-map-pin-2-fill"></i>,
-        name: "Locations",
-        path: "/locationlist",
-      },
-      {
-        icon: <i className="ri-time-fill"></i>,
-        name: "Shifts",
-        path: "/shift",
       },
       {
         icon: <i className="ri-logout-box-r-line"></i>,
@@ -400,7 +462,7 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
 
   const elements = getElements();
 
-  // Handle item click
+  // Handle item click - REMOVED onLinkClick call that was causing collapse
   const handleItemClick = (path, action) => {
     if (path) {
       navigate(path);
@@ -412,23 +474,17 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
     
     setOpenDropdown(null);
     setOpenSubDropdown({});
-    
-    if (onLinkClick) {
-      onLinkClick();
-    }
-    
     setHoveredItem(null);
+    // REMOVED: if (onLinkClick) onLinkClick();
   };
 
-  // Handle dropdown item click
+  // Handle dropdown item click - REMOVED onLinkClick call that was causing collapse
   const handleDropdownItemClick = (path) => {
     navigate(path);
     setOpenDropdown(null);
     setOpenSubDropdown({});
-    
-    if (onLinkClick) {
-      onLinkClick();
-    }
+    setHoveredItem(null);
+    // REMOVED: if (onLinkClick) onLinkClick();
   };
 
   // Get header title based on selected product
@@ -438,6 +494,7 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
         case 'attendance': return 'AM';
         case 'coworking': return 'CW';
         case 'bmi': return 'BM';
+        case 'recruitment': return 'RM';
         default: return 'TM';
       }
     }
@@ -446,6 +503,7 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       case 'attendance': return 'Attendance Management';
       case 'coworking': return 'Coworking Space';
       case 'bmi': return 'BMI & Health';
+      case 'recruitment': return 'Recruitment Management';
       default: return 'Team Management';
     }
   };
@@ -456,6 +514,7 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       case 'attendance': return 'Attendance v2.0';
       case 'coworking': return 'Coworking v1.0';
       case 'bmi': return 'Health v1.0';
+      case 'recruitment': return 'Recruitment v1.0';
       default: return 'System v2.0';
     }
   };
@@ -486,8 +545,6 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       )}
 
       <div
-        onMouseEnter={handleMouseEnterSidebar}
-        onMouseLeave={handleMouseLeaveSidebar}
         className={`fixed top-0 left-0 h-full bg-[#1E40AF] text-white z-50 transition-all duration-300 border-r border-blue-800/50
         ${
           isMobile
@@ -544,7 +601,8 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
                         navigate(item.dropdown[0].path);
                         setOpenDropdown(null);
                         setOpenSubDropdown({});
-                        if (onLinkClick) onLinkClick();
+                        setHoveredItem(null);
+                        // REMOVED: if (onLinkClick) onLinkClick();
                       }
                     }}
                     onMouseEnter={(e) => isCollapsed && !isMobile && handleMouseMove(e, item.name)}

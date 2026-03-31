@@ -1,35 +1,39 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import {
-  FaAsterisk, FaBriefcase, FaBuilding, FaCheck, FaDownload, FaEdit,
-  FaEye, FaSave, FaSearch, FaSignOutAlt, FaSpinner, FaSync, FaTimes,
+  FaAsterisk, FaBriefcase, FaBuilding, FaCalendarAlt, FaCheck, FaDownload, FaEdit,
+  FaEye, FaSave, FaSearch, FaShieldAlt, FaSignOutAlt, FaSpinner, FaSync, FaTimes,
   FaUser, FaUserTie
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { API_BASE_URL } from "../utils/config";
 
-const API_BASE_URL = 'http://localhost:5000/api'
-
-
-const MetaRow = ({ label, value }) => (
-  <div className="flex justify-between py-2 border-b border-gray-50 last:border-b-0 text-sm">
-    <span className="text-gray-500 font-medium">{label}</span>
-    <span className="font-bold text-gray-800 text-right">{value || "N/A"}</span>
+const MetaRow = ({ label, value, icon }) => (
+  <div className="flex items-start gap-3">
+    {icon && <div className="mt-1 text-blue-500 scale-110">{icon}</div>}
+    <div>
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
+      <p className="text-sm font-bold text-gray-800">{value || "---"}</p>
+    </div>
   </div>
 );
 
 const StatusBadge = ({ status, className = "" }) => {
   const badges = {
-    approved: "bg-green-100 text-green-700",
-    rejected: "bg-red-100 text-red-700",
-    uploaded: "bg-blue-100 text-blue-700",
-    missing: "bg-gray-100 text-gray-500"
+    approved: "bg-emerald-50 text-emerald-700 border-emerald-100 shadow-sm",
+    rejected: "bg-rose-50 text-rose-700 border-rose-100 shadow-sm",
+    uploaded: "bg-blue-50 text-blue-700 border-blue-100 shadow-sm",
+    missing: "bg-gray-50 text-gray-400 border-gray-100 shadow-sm"
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase transition-all ${badges[status] || badges.missing} ${className}`}>
-      {status === 'approved' && <FaCheck className="mr-1 w-2 h-2" />}
-      {status === 'rejected' && <FaTimes className="mr-1 w-2 h-2" />}
+    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all duration-300 ${badges[status] || badges.missing} ${className}`}>
+      {status === 'approved' && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>}
+      {status === 'rejected' && <div className="w-1.5 h-1.5 bg-rose-500 rounded-full mr-2 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>}
+      {status === 'uploaded' && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>}
+      {status === 'missing' && <div className="w-1.5 h-1.5 bg-gray-300 rounded-full mr-2"></div>}
       {status}
     </span>
   );
@@ -68,14 +72,15 @@ export default function PersonalDocuments() {
   const [isEditingEmergency2, setIsEditingEmergency2] = useState(false);
   const [emergency2Form, setEmergency2Form] = useState({ name: "", phone: "", relationship: "" });
   const [isSavingE2, setIsSavingE2] = useState(false);
+  const [isDownloadingBulk, setIsDownloadingBulk] = useState(false);
 
-  const navigate = useNavigate();
-  const clientId = localStorage.getItem("clientId");
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId');
 
   // Helper to get filtered data - define this before any conditional returns
   const getFilteredData = () => {
     if (!Array.isArray(data)) return [];
-    
+
     return data.filter(row => {
       const docs = row.documents || {};
       const hasUploadedDocs = Object.entries(docs).some(([key, doc]) =>
@@ -102,11 +107,6 @@ export default function PersonalDocuments() {
   };
 
   useEffect(() => {
-    if (!clientId) {
-      toast.error("Please login first!");
-      navigate("/login");
-      return;
-    }
     fetchData();
     fetchRoles();
 
@@ -135,9 +135,13 @@ export default function PersonalDocuments() {
 
   const fetchRoles = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/roles/all?clientId=${clientId}`);
+      const res = await axios.post(`${API_BASE_URL}/jobs/all`, { clientId });
       if (res.data.success) {
-        setRoles(res.data.data || []);
+        // Extract unique roles from jobs
+        const jobData = res.data.data || res.data.jobPosts || [];
+        const roleNames = Array.from(new Set(jobData.map(job => job.role))).filter(Boolean);
+        const uniqueRoles = roleNames.map((name, index) => ({ _id: index, name }));
+        setRoles(uniqueRoles);
       }
     } catch (err) {
       console.error("Failed to fetch roles:", err);
@@ -157,25 +161,25 @@ export default function PersonalDocuments() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       if (userId) {
-        const res = await axios.get(`${API_BASE_URL}/candidate/admin/${userId}?clientId=${clientId}`, { headers });
+        const res = await axios.get(`${API_BASE_URL}/candidate/admin/${userId}`, { headers });
         if (res.data) {
           const payload = res.data.success ? res.data.data : res.data;
           setData(payload);
         }
       } else {
         try {
-          const listRes = await axios.get(`${API_BASE_URL}/candidate/all-documents?clientId=${clientId}`, { headers });
+          const listRes = await axios.get(`${API_BASE_URL}/candidate/all-documents`, { headers });
           if (listRes.data && listRes.data.success && Array.isArray(listRes.data.data)) {
             setData(listRes.data.data);
           } else if (listRes.data && Array.isArray(listRes.data)) {
             setData(listRes.data);
           } else {
-            const res = await axios.get(`${API_BASE_URL}/candidate/documents?clientId=${clientId}`, { headers });
+            const res = await axios.get(`${API_BASE_URL}/candidate/documents`, { headers });
             const payload = res.data && res.data.success ? res.data.data : res.data;
             setData(payload);
           }
         } catch (e) {
-          const res = await axios.get(`${API_BASE_URL}/candidate/documents?clientId=${clientId}`, { headers });
+          const res = await axios.get(`${API_BASE_URL}/candidate/documents`, { headers });
           const payload = res.data && res.data.success ? res.data.data : res.data;
           setData(payload);
         }
@@ -217,7 +221,7 @@ export default function PersonalDocuments() {
     try {
       const token = localStorage.getItem("candidateToken");
       const res = await axios.post(`${API_BASE_URL}/candidate/save-bank-details`,
-        { bankDetails: bankForm, clientId },
+        { bankDetails: bankForm },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
@@ -241,7 +245,7 @@ export default function PersonalDocuments() {
     try {
       const token = localStorage.getItem("candidateToken");
       const res = await axios.post(`${API_BASE_URL}/candidate/save-emergency-contact`,
-        { contactNumber: num, contact: form, clientId },
+        { contactNumber: num, contact: form },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
@@ -268,6 +272,53 @@ export default function PersonalDocuments() {
   const mark = (key, state) => {
     setMarks((s) => ({ ...s, [key]: state }));
     toast.success(`${state === "approved" ? "Approved" : "Rejected"}: ${key}`);
+  };
+
+  const handleBulkDownload = async (targetData = null) => {
+    const activeData = targetData || data;
+    if (!activeData || Array.isArray(activeData)) return;
+
+    const docsToDownload = Object.entries(activeData.documents || {})
+      .filter(([key, doc]) =>
+        !['bankDetails', 'emergencyContact1', 'emergencyContact2', '_id'].includes(key) &&
+        doc && typeof doc === 'object' && doc.filePath
+      );
+
+    if (docsToDownload.length === 0) {
+      return toast.info("No documents uploaded to download");
+    }
+
+    setIsDownloadingBulk(true);
+    const zip = new JSZip();
+    const toastId = toast.loading(`Preparing bulk download for ${activeData.candidateName || 'Candidate'}...`);
+
+    try {
+      const downloadPromises = docsToDownload.map(async ([key, doc]) => {
+        const relativePath = doc.filePath.includes("uploads")
+          ? "uploads/" + doc.filePath.split(/uploads[\\/]/).pop().replace(/\\/g, "/")
+          : doc.filePath.replace(/\\/g, "/");
+        const url = `${API_BASE_URL.replace("/api", "")}/${relativePath}`;
+
+        try {
+          const response = await axios.get(url, { responseType: 'arraybuffer' });
+          const fileName = doc.fileName || `${key}.${doc.filePath.split('.').pop()}`;
+          zip.file(fileName, response.data);
+        } catch (err) {
+          console.error(`Failed to download ${key}:`, err);
+        }
+      });
+
+      await Promise.all(downloadPromises);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${activeData.candidateName || 'Candidate'}_Documents.zip`);
+      toast.update(toastId, { render: "Bulk download complete!", type: "success", isLoading: false, autoClose: 3000 });
+    } catch (err) {
+      console.error("Bulk download failed:", err);
+      toast.update(toastId, { render: "Bulk download failed", type: "error", isLoading: false, autoClose: 3000 });
+    } finally {
+      setIsDownloadingBulk(false);
+    }
   };
 
   // Pagination Handlers
@@ -333,7 +384,7 @@ export default function PersonalDocuments() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="text-center">
         <FaSpinner className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
-        <p className="text-sm font-medium text-gray-400">Loading Documents...</p>
+        <p className="text-sm font-bold text-gray-400">Loading Documents...</p>
       </div>
     </div>
   );
@@ -358,159 +409,129 @@ export default function PersonalDocuments() {
     const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
-      <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6 lg:p-8">
-        {/* Filters Section */}
-        <div className="p-3 mb-3 bg-white rounded-lg shadow-md">
+      <div className="w-full min-h-screen p-0 md:p-2 lg:p-4 pb-20">
+        {/* Unified Search & Filter Bar */}
+        <div className="p-3 mb-3 bg-white rounded-lg shadow-md border border-gray-100">
           <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Header Info - Matching Assessment Manager */}
+            <div className="flex items-center gap-2 mr-4">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                <FaUserTie size={12} />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-sm font-bold text-gray-900 leading-none uppercase tracking-tighter">Document Manager</h1>
+                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{filteredData.length} active records</p>
+              </div>
+            </div>
 
-            {/* Search Bar */}
+            {/* Search Bar - Compact Style */}
             <div className="relative flex-1 min-w-[180px]">
-              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-              <input
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input 
                 type="text"
-                placeholder="Search name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-8 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder="Search candidates..." 
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none transition-all" 
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                >
-                  <FaTimes className="text-xs" />
-                </button>
-              )}
             </div>
 
-            {/* Role Filter Button */}
-            <div className="relative" ref={roleDropdownRef}>
-              <button
-                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                className={`h-8 px-3 text-xs font-medium rounded-md transition flex items-center gap-1 ${
-                  roleFilter 
-                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                }`}
-              >
-                <FaBriefcase className="text-xs" /> Role {roleFilter && `: ${roleFilter}`}
-              </button>
-              
-              {/* Role Filter Dropdown */}
-              {isRoleDropdownOpen && (
-                <div className="absolute z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  <div className="p-2 border-b border-gray-100 bg-gray-50">
-                    <div className="relative">
-                      <FaUserTie className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                      <input
-                        type="text"
-                        className="w-full py-1 pl-7 pr-2 text-xs bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Search roles..."
-                        value={roleSearchQuery}
-                        onChange={(e) => setRoleSearchQuery(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div 
-                    onClick={() => {
-                      setRoleFilter('');
-                      setIsRoleDropdownOpen(false);
-                      setRoleSearchQuery('');
-                    }}
-                    className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-medium ${
-                      !roleFilter ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+            <div className="flex items-center gap-2">
+              {/* Role Dropdown - Compact */}
+              <div className="relative" ref={roleDropdownRef}>
+                <button
+                  onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                  className={`h-8 px-3 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 border uppercase tracking-widest ${roleFilter
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
                     }`}
-                  >
-                    All Roles
-                  </div>
-                  {roles
-                    .filter(r => r.name.toLowerCase().includes(roleSearchQuery.toLowerCase()))
-                    .map((r) => (
-                      <div 
-                        key={r._id}
-                        onClick={() => {
-                          setRoleFilter(r.name);
-                          setIsRoleDropdownOpen(false);
-                          setRoleSearchQuery('');
-                        }}
-                        className={`px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer ${
-                          roleFilter === r.name ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                        }`}
-                      >
-                        {r.name}
+                >
+                  <FaBriefcase className={roleFilter ? 'text-white' : 'text-blue-500'} size={10} />
+                  {roleFilter || 'All Departments'}
+                </button>
+
+                {isRoleDropdownOpen && (
+                  <div className="absolute z-50 mt-1 right-0 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden py-1 animate-in fade-in slide-in-from-top-1">
+                    <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                      <div className="relative">
+                        <FaUserTie className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]" />
+                        <input
+                          type="text"
+                          className="w-full py-1.5 pl-8 pr-3 text-[10px] bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                          placeholder="Search roles..."
+                          value={roleSearchQuery}
+                          onChange={(e) => setRoleSearchQuery(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
                       </div>
-                    ))}
-                  {roles.filter(r => r.name.toLowerCase().includes(roleSearchQuery.toLowerCase())).length === 0 && (
-                    <div className="px-3 py-2 text-xs text-gray-400 text-center">
-                      No roles found
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      <div
+                        onClick={() => { setRoleFilter(''); setIsRoleDropdownOpen(false); setRoleSearchQuery(''); }}
+                        className={`px-3 py-2 text-[10px] font-bold cursor-pointer hover:bg-blue-50 transition-colors ${!roleFilter ? 'text-blue-600 bg-blue-50/80' : 'text-gray-600'}`}
+                      >
+                        ALL DEPARTMENTS
+                      </div>
+                      {roles
+                        .filter(r => r.name.toLowerCase().includes(roleSearchQuery.toLowerCase()))
+                        .map((r) => (
+                          <div
+                            key={r._id}
+                            onClick={() => { setRoleFilter(r.name); setIsRoleDropdownOpen(false); setRoleSearchQuery(''); }}
+                            className={`px-3 py-2 text-[10px] font-bold cursor-pointer hover:bg-blue-50/80 transition-colors ${roleFilter === r.name ? 'text-blue-600 bg-blue-50/80' : 'text-gray-600'}`}
+                          >
+                            {r.name.toUpperCase()}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Date Filter */}
-            <div className="relative w-[130px]">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
-                Date:
-              </span>
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                onClick={(e) => e.target.showPicker && e.target.showPicker()}
-                className="w-full pl-12 pr-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-              />
-              {dateFilter && (
-                <button
-                  onClick={() => setDateFilter("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+              {/* Date Filter - Compact */}
+              <div className="relative group">
+                <FaCalendarAlt className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none group-focus-within:text-blue-500 transition-colors" />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="h-8 pl-7 pr-2 bg-white border border-gray-300 rounded-md text-[10px] font-bold text-gray-600 uppercase tracking-widest focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer hover:border-blue-400"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 border-l border-gray-200 pl-2">
+                <button 
+                  onClick={fetchData} 
+                  className="w-8 h-8 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all flex items-center justify-center"
+                  title="Refresh Data"
                 >
-                  <FaTimes className="text-xs" />
+                  <FaSync className={loading ? 'animate-spin' : ''} size={12} />
                 </button>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 ml-auto">
-              <button 
-                onClick={fetchData} 
-                className="h-8 px-3 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition flex items-center gap-1"
-              >
-                <FaSync className="text-xs" /> Refresh
-              </button>
-
-              <button
-                onClick={() => navigate('/employee-resignation')}
-                className="h-8 px-3 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition flex items-center gap-1"
-              >
-                <FaSignOutAlt className="text-xs" /> Resignations
-              </button>
-
-              {/* Reset Filters Button */}
-              {(searchQuery || roleFilter || dateFilter) && (
-                <button
-                  onClick={resetFilters}
-                  className="h-8 px-3 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition"
-                >
-                  Clear
-                </button>
-              )}
+                {(searchQuery || roleFilter || dateFilter) && (
+                  <button
+                    onClick={resetFilters}
+                    className="h-8 px-3 bg-red-50 text-red-600 border border-red-200 rounded-md text-[9px] font-bold uppercase tracking-wider hover:bg-red-100 transition-all flex items-center gap-1.5"
+                  >
+                    <FaTimes size={10} /> Clear
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
-          <table className="min-w-full">
-            <thead className="text-sm text-left text-white bg-gradient-to-r from-green-500 to-blue-600">
+        <div className="overflow-x-auto bg-white shadow-xl rounded-2xl border border-gray-100">
+          <table className="min-w-full border-collapse">
+            <thead className="bg-gradient-to-r from-green-500 to-blue-600">
               <tr>
-                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">Candidate Details</th>
-                {["Aadhar", "PAN", "Pass", "10th", "12th", "Grad", "Exp", "Bank"].map((header) => (
-                  <th key={header} className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider">{header}</th>
+                <th className="px-6 py-4 text-center font-bold text-white text-xs uppercase tracking-widest">Candidate</th>
+                {["Aadhar", "PAN", "Photo", "10th", "12th", "Graduation", "Experience", "Banking"].map((header) => (
+                  <th key={header} className="px-3 py-4 text-center font-bold text-white text-xs uppercase tracking-widest">{header}</th>
                 ))}
-                <th className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider border-l border-white/20">Actions</th>
+                <th className="px-6 py-4 text-center font-bold text-white text-xs uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -525,27 +546,27 @@ export default function PersonalDocuments() {
                   const doc = docs[docKey] || {};
                   const uploaded = !!doc.filePath;
                   return (
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       <div className="flex items-center justify-center gap-1">
                         {uploaded ? (
                           <>
                             <button
                               onClick={() => openFile(doc.filePath)}
-                              className="p-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all"
+                              className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                               title="View"
                             >
-                              <FaEye size={10} />
+                              <FaEye size={14} />
                             </button>
                             <button
                               onClick={() => openFile(doc.filePath)}
-                              className="p-1 rounded bg-gray-50 text-gray-500 hover:bg-gray-800 hover:text-white transition-all"
+                              className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-gray-800 hover:text-white transition-all shadow-sm"
                               title="Download"
                             >
-                              <FaDownload size={10} />
+                              <FaDownload size={14} />
                             </button>
                           </>
                         ) : (
-                          <FaTimes className="text-gray-200" size={10} />
+                          <FaTimes className="text-gray-100" size={12} />
                         )}
                       </div>
                     </td>
@@ -554,14 +575,14 @@ export default function PersonalDocuments() {
 
                 return (
                   <tr key={candId} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       <div className="flex items-center justify-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white shadow-sm text-xs">
                           {candName.charAt(0)}
                         </div>
                         <div>
                           <div className="text-xs font-bold text-gray-800">{candName}</div>
-                          <div className="text-[8px] text-gray-400 font-medium">{candEmail || candId.slice(-8)}</div>
+                          <div className="text-[10px] text-gray-400 font-bold">{candEmail || candId.slice(-8)}</div>
                         </div>
                       </div>
                     </td>
@@ -572,37 +593,50 @@ export default function PersonalDocuments() {
                     {renderDocMini('twelfthCertificate')}
                     {renderDocMini('graduationCertificate')}
                     {renderDocMini('experienceLetters')}
-                    <td className="p-3 text-center">
+                    <td className="p-2 text-center">
                       <div className={`w-2 h-2 mx-auto rounded-full ${docs.bankDetails?.bankName ? 'bg-green-500 shadow-sm' : 'bg-gray-100'}`}></div>
                     </td>
-                    <td className="p-3 text-center border-l border-gray-50">
-                      <button
-                        onClick={() => navigate(`/personaldocuments?userId=${candId}`)}
-                        className="text-blue-600 hover:text-blue-800 font-bold text-xs"
-                      >
-                        Review
-                      </button>
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => window.location.assign(`/personal-documents?userId=${candId}`)}
+                          className="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl hover:from-green-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                          title="Detailed Review"
+                        >
+                          <FaEye size={16} />
+                          <span>REVIEW</span>
+                        </button>
+                        <button
+                          onClick={() => handleBulkDownload(row)}
+                          disabled={isDownloadingBulk}
+                          className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50"
+                          title="Generate Archive"
+                        >
+                          <FaDownload size={16} />
+                          <span>ARCHIVE</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          
+
           {/* Pagination */}
           {filteredData.length > 0 && (
             <div className="flex flex-col items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 sm:flex-row">
               <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
                 <span>Showing</span>
-                <span className="font-medium">
+                <span className="font-bold">
                   {indexOfFirstItem + 1}
                 </span>
                 <span>to</span>
-                <span className="font-medium">
+                <span className="font-bold">
                   {Math.min(indexOfLastItem, filteredData.length)}
                 </span>
                 <span>of</span>
-                <span className="font-medium">
+                <span className="font-bold">
                   {filteredData.length}
                 </span>
                 <span>results</span>
@@ -626,11 +660,10 @@ export default function PersonalDocuments() {
                 <button
                   onClick={handlePrevPage}
                   disabled={pagination.currentPage === 1}
-                  className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                    pagination.currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
+                  className={`px-4 py-2 border rounded-lg text-sm font-bold transition-colors ${pagination.currentPage === 1
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   Previous
                 </button>
@@ -641,13 +674,12 @@ export default function PersonalDocuments() {
                       key={index}
                       onClick={() => typeof page === 'number' ? handlePageClick(page) : null}
                       disabled={page === "..."}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        page === "..."
-                          ? "text-gray-500 cursor-default"
-                          : pagination.currentPage === page
+                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${page === "..."
+                        ? "text-gray-500 cursor-default"
+                        : pagination.currentPage === page
                           ? "bg-blue-600 text-white"
                           : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>
@@ -657,20 +689,19 @@ export default function PersonalDocuments() {
                 <button
                   onClick={handleNextPage}
                   disabled={pagination.currentPage === pagination.totalPages}
-                  className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                    pagination.currentPage === pagination.totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
+                  className={`px-4 py-2 border rounded-lg text-sm font-bold transition-colors ${pagination.currentPage === pagination.totalPages
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   Next
                 </button>
               </div>
             </div>
           )}
-          
+
           {filteredData.length === 0 && (
-            <div className="p-12 text-center text-gray-500 text-sm font-medium">No active records found.</div>
+            <div className="p-12 text-center text-gray-500 text-sm font-bold">No active records found.</div>
           )}
         </div>
       </div>
@@ -679,417 +710,275 @@ export default function PersonalDocuments() {
 
   // Profile Specific View (single candidate)
   const docKeys = Object.keys(data.documents || {}).filter(key =>
-    !['bankDetails', 'emergencyContact1', 'emergencyContact2'].includes(key)
+    !['bankDetails', 'emergencyContact1', 'emergencyContact2', '_id'].includes(key)
   );
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6 lg:p-8">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-100">
-              {data.candidateName?.charAt(0) || data.email?.charAt(0) || <FaUser />}
+    <div className="w-full min-h-screen p-2 bg-slate-50/50">
+      <div className="max-w-[1600px] mx-auto space-y-3">
+        
+        {/* Corporate Sleek Header - Compact & Professional */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-green-600 to-blue-700 rounded-3xl p-6 shadow-xl border border-white/10 group">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>
+          
+          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 text-2xl font-bold shadow-2xl ring-4 ring-white/20 group-hover:scale-105 transition-transform duration-500 bg-white">
+                  {data.candidateName?.charAt(0) || data.candidateId?.name?.charAt(0) || <FaUser />}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-lg border-2 border-white flex items-center justify-center text-white shadow-lg">
+                  <FaCheck size={10} />
+                </div>
+              </div>
+              
+              <div className="text-center md:text-left">
+                <h1 className="text-xl font-bold text-white tracking-tight drop-shadow-sm">
+                  {data.candidateName || data.candidateId?.name || 'Review Profile'}
+                </h1>
+                <p className="text-white/90 text-[9px] font-bold uppercase tracking-[0.15em] mt-1.5 flex items-center justify-center md:justify-start gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg w-fit border border-white/10">
+                  <FaUserTie size={10} className="text-emerald-400" /> IDENTITY VERIFICATION RECORD
+                </p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
+                  <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-blue-100 text-[9px] font-bold uppercase tracking-wider rounded-lg border border-white/10">
+                    UID: {data._id?.slice(-8).toUpperCase()}
+                  </span>
+                  <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-emerald-100 text-[9px] font-bold uppercase tracking-wider rounded-lg border border-white/10 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                    VERIFIED
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 leading-tight">
-                {data.candidateName || data.email || 'Candidate Profile'}
-              </h2>
-              <p className="text-blue-600 text-xs font-black uppercase tracking-[0.2em] mt-1">
-                Verified: {data.completionPercentage ?? 0}%
-              </p>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleBulkDownload()}
+                disabled={isDownloadingBulk}
+                className="h-10 px-6 bg-white/20 hover:bg-white text-white hover:text-blue-600 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-3 transition-all border border-white/10 active:scale-95 disabled:opacity-50"
+              >
+                {isDownloadingBulk ? <FaSpinner className="animate-spin" size={12} /> : <FaDownload size={12} />}
+                {isDownloadingBulk ? "GENERATING..." : "DOWNLOAD VAULT"}
+              </button>
+              <button
+                onClick={() => window.location.assign('/personal-documents')}
+                className="h-10 px-6 bg-white text-blue-600 hover:bg-gray-50 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center gap-3"
+              >
+                <FaSignOutAlt size={12} />
+                BACK TO INDEX
+              </button>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/personaldocuments')} className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black transition-all">Close</button>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-3 space-y-10">
-              {/* Documents Grid */}
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Verification Documents</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {docKeys.map((key) => {
-                    const doc = data.documents[key] || {};
-                    const uploaded = !!doc.filePath;
-                    const state = marks[key] || (doc.verified ? 'approved' : uploaded ? 'uploaded' : 'missing');
+        {/* Main Review Dashboard - Optimized Layout */}
+        <div className="flex flex-col gap-3 pb-8">
+          
+          {/* Documents Table View - Full Width */}
+          <div className="w-full space-y-3">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner border border-blue-100"><FaBriefcase size={14}/></div>
+                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest font-sans">Primary Credentials</h3>
+                 </div>
+                 <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white px-4 py-1.5 rounded-full border border-gray-100">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div> Approved
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div> Uploaded
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div> Missing
+                 </div>
+              </div>
 
-                    return (
-                      <div key={key} className="bg-white border border-gray-100 rounded-xl p-5 hover:shadow-lg transition-all flex flex-col justify-between min-h-[160px]">
-                        <div>
-                          <div className="flex justify-between items-start mb-3">
-                            <h4 className="text-sm font-bold text-gray-800">{key.replace(/([A-Z])/g, ' $1')}</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gradient-to-r from-green-500 to-blue-600 text-[11px] font-bold text-white uppercase tracking-widest border-b border-blue-100">
+                    <tr>
+                      <th className="px-6 py-5">Asset Identification</th>
+                      <th className="px-6 py-5 text-center">Status</th>
+                      <th className="px-6 py-5 text-center">Reference</th>
+                      <th className="px-6 py-5 text-right">Verification Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 border-t border-gray-100">
+                    {docKeys.map((key) => {
+                      const doc = data.documents[key] || {};
+                      const uploaded = !!doc.filePath;
+                      const state = marks[key] || (doc.verified ? 'approved' : uploaded ? 'uploaded' : 'missing');
+
+                      return (
+                        <tr key={key} className="group hover:bg-slate-50 transition-all duration-300">
+                          <td className="px-6 py-4">
+                             <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${uploaded ? 'bg-blue-50 text-blue-600 shadow-inner group-hover:bg-blue-600 group-hover:text-white' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
+                                   <FaBriefcase size={18} />
+                                </div>
+                                 <div>
+                                    <p className="text-xs font-bold text-gray-900 uppercase tracking-tight group-hover:text-blue-600 transition-colors">{key.replace(/([A-Z])/g, ' $1')}</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{uploaded ? 'Synchronized Archive' : 'Awaiting Manifest'}</p>
+                                 </div>
+                             </div>
+                           </td>
+                          <td className="px-6 py-4 text-center">
                             <StatusBadge status={state} />
-                          </div>
-                          <p className="text-[10px] text-gray-400 font-mono truncate">{doc.fileName || 'No file selected'}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-2 mt-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => openFile(doc.filePath)}
-                              disabled={!uploaded}
-                              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${uploaded ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-50 text-gray-300'}`}
-                            >
-                              <FaEye size={12} /> View
-                            </button>
-                            <button
-                              onClick={() => openFile(doc.filePath)}
-                              disabled={!uploaded}
-                              className={`flex-1 py-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-2 transition-all ${uploaded ? 'border-gray-200 text-gray-700 hover:bg-gray-50' : 'bg-gray-50 border-transparent text-gray-300'}`}
-                            >
-                              <FaDownload size={12} /> Download
-                            </button>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => mark(key, 'approved')}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${state === 'approved' ? 'bg-green-100 border-green-200 text-green-700' : 'border-gray-100 text-gray-400 hover:text-green-600'}`}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => mark(key, 'rejected')}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${state === 'rejected' ? 'bg-red-100 border-red-200 text-red-700' : 'border-gray-100 text-gray-400 hover:text-red-600'}`}
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                           </td>
+                          <td className="px-6 py-4 text-center font-mono text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                            {doc.fileName ? `...${doc.fileName.slice(-15)}` : '--'}
+                           </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-2 outline-none">
+                               <button
+                                  onClick={() => openFile(doc.filePath)}
+                                  disabled={!uploaded}
+                                  className={`h-11 px-5 rounded-xl transition-all flex items-center gap-2 active:scale-95 ${uploaded ? 'bg-gradient-to-r from-green-500 to-blue-600 text-white hover:from-green-600 hover:to-blue-700 shadow-md shadow-blue-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
+                               >
+                                  <FaEye size={18} />
+                                  <span className="text-[11px] font-bold uppercase tracking-widest">{uploaded ? '' : 'Locked'}</span>
+                               </button>
+                               <div className="h-6 w-px bg-gray-200 mx-1"></div>
+                               <button
+                                 onClick={() => mark(key, 'approved')}
+                                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border-2 ${state === 'approved' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200' : 'border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 shadow-sm'}`}
+                                 title="Approve"
+                               >
+                                 <FaCheck size={24} />
+                               </button>
+                               <button
+                                 onClick={() => mark(key, 'rejected')}
+                                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border-2 ${state === 'rejected' ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-200' : 'border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 shadow-sm'}`}
+                                 title="Reject"
+                               >
+                                 <FaTimes size={24} />
+                               </button>
+                            </div>
+                           </td>
+                         </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+            </div>
+          </div>
 
-              {/* Extra Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-6 border-t border-gray-100">
-                {/* Bank Details Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <FaBuilding className="text-blue-500" /> Bank Details
-                    </h3>
-                    {!isEditingBank && (
-                      <button
-                        onClick={() => setIsEditingBank(true)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                        title="Edit Bank Details"
-                      >
-                        <FaEdit size={12} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-3">
-                    {isEditingBank ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Institution Name</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                            value={bankForm.bankName}
-                            onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
-                            placeholder="e.g. HDFC Bank"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Account Number</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                            value={bankForm.accountNumber}
-                            onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
-                            placeholder="Account Number"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">IFSC Code</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                            value={bankForm.ifscCode}
-                            onChange={(e) => setBankForm({ ...bankForm, ifscCode: e.target.value })}
-                            placeholder="IFSC Code"
-                          />
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                          <button
-                            onClick={handleSaveBankDetails}
-                            disabled={isSavingBank}
-                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-                          >
-                            {isSavingBank ? <FaSpinner className="animate-spin" /> : <><FaSave /> Save</>}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsEditingBank(false);
-                              setBankForm({
-                                bankName: data.documents?.bankDetails?.bankName || "",
-                                accountNumber: data.documents?.bankDetails?.accountNumber || "",
-                                ifscCode: data.documents?.bankDetails?.ifscCode || ""
-                              });
-                            }}
-                            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+          {/* Details Row - Three Cards Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            
+             {/* Bank Card - Sleek Minimalist */}
+             <div className="bg-white rounded-2xl shadow-lg border-t-4 border-blue-500 overflow-hidden group hover:shadow-xl transition-all duration-500">
+               <div className="p-5 bg-gray-50 flex items-center justify-between border-b border-gray-100">
+                   <div className="flex items-center gap-3 text-gray-800">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner border border-blue-100">
+                         <FaBuilding size={14} />
                       </div>
-                    ) : (
-                      <>
-                        <MetaRow label="Institution" value={data.documents?.bankDetails?.bankName} />
-                        <MetaRow label="Account" value={data.documents?.bankDetails?.accountNumber} />
-                        <MetaRow label="IFSC Code" value={data.documents?.bankDetails?.ifscCode} />
-                        {!data.documents?.bankDetails?.bankName && (
-                          <p className="text-[10px] font-bold text-gray-400 italic text-center py-2">No bank details provided</p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Emergency Contact #1 Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <FaAsterisk className="text-rose-500" /> Emergency #1
-                    </h3>
-                    {!isEditingEmergency1 && (
-                      <button
-                        onClick={() => setIsEditingEmergency1(true)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                        title="Edit Contact 1"
-                      >
-                        <FaEdit size={12} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-3">
-                    {isEditingEmergency1 ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Full Name</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-rose-500 outline-none transition-all shadow-sm"
-                            value={emergency1Form.name}
-                            onChange={(e) => setEmergency1Form({ ...emergency1Form, name: e.target.value })}
-                            placeholder="Contact Name"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Phone Number</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-rose-500 outline-none transition-all shadow-sm"
-                            value={emergency1Form.phone}
-                            onChange={(e) => setEmergency1Form({ ...emergency1Form, phone: e.target.value })}
-                            placeholder="Phone Number"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Relationship</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-rose-500 outline-none transition-all shadow-sm"
-                            value={emergency1Form.relationship}
-                            onChange={(e) => setEmergency1Form({ ...emergency1Form, relationship: e.target.value })}
-                            placeholder="Relation (e.g. Spouse)"
-                          />
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                          <button
-                            onClick={() => handleSaveEmergencyContact(1)}
-                            disabled={isSavingE1}
-                            className="flex-1 py-2 bg-rose-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
-                          >
-                            {isSavingE1 ? <FaSpinner className="animate-spin" /> : <><FaSave /> Save</>}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsEditingEmergency1(false);
-                              setEmergency1Form({
-                                name: data.documents?.emergencyContact1?.name || "",
-                                phone: data.documents?.emergencyContact1?.phone || "",
-                                relationship: data.documents?.emergencyContact1?.relationship || ""
-                              });
-                            }}
-                            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <MetaRow label="Identity" value={data.documents?.emergencyContact1?.name} />
-                        <MetaRow label="Phone" value={data.documents?.emergencyContact1?.phone} />
-                        <MetaRow label="Relation" value={data.documents?.emergencyContact1?.relationship} />
-                        {!data.documents?.emergencyContact1?.name && (
-                          <p className="text-[10px] font-bold text-gray-400 italic text-center py-2">No contact provided</p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Emergency Contact #2 Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <FaAsterisk className="text-blue-500" /> Emergency #2
-                    </h3>
-                    {!isEditingEmergency2 && (
-                      <button
-                        onClick={() => setIsEditingEmergency2(true)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                        title="Edit Contact 2"
-                      >
-                        <FaEdit size={12} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-3">
-                    {isEditingEmergency2 ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Full Name</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                            value={emergency2Form.name}
-                            onChange={(e) => setEmergency2Form({ ...emergency2Form, name: e.target.value })}
-                            placeholder="Contact Name"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Phone Number</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                            value={emergency2Form.phone}
-                            onChange={(e) => setEmergency2Form({ ...emergency2Form, phone: e.target.value })}
-                            placeholder="Phone Number"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Relationship</label>
-                          <input
-                            type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                            value={emergency2Form.relationship}
-                            onChange={(e) => setEmergency2Form({ ...emergency2Form, relationship: e.target.value })}
-                            placeholder="Relation (e.g. Parent)"
-                          />
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                          <button
-                            onClick={() => handleSaveEmergencyContact(2)}
-                            disabled={isSavingE2}
-                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-                          >
-                            {isSavingE2 ? <FaSpinner className="animate-spin" /> : <><FaSave /> Save</>}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsEditingEmergency2(false);
-                              setEmergency2Form({
-                                name: data.documents?.emergencyContact2?.name || "",
-                                phone: data.documents?.emergencyContact2?.phone || "",
-                                relationship: data.documents?.emergencyContact2?.relationship || ""
-                              });
-                            }}
-                            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <MetaRow label="Identity" value={data.documents?.emergencyContact2?.name} />
-                        <MetaRow label="Phone" value={data.documents?.emergencyContact2?.phone} />
-                        <MetaRow label="Relation" value={data.documents?.emergencyContact2?.relationship} />
-                        {!data.documents?.emergencyContact2?.name && (
-                          <p className="text-[10px] font-bold text-gray-400 italic text-center py-2">No contact provided</p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Academic Background Section */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div> Academic Background
-                  </h3>
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-3">
-                    <MetaRow label="Qualification" value={data.candidateId?.qualification} />
-                    <MetaRow label="Percentage" value={data.candidateId?.percentage} />
-                    <MetaRow label="Passing Year" value={data.candidateId?.passingYear} />
-                    {(!data.candidateId?.qualification && !data.candidateId?.percentage) && (
-                      <p className="text-[10px] font-bold text-gray-400 italic text-center py-2">No academic details provided</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Professional Record Section */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Professional Record
-                  </h3>
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-3">
-                    <MetaRow label="Experience" value={data.candidateId?.experience} />
-                    <MetaRow label="Organization" value={data.candidateId?.currentCompany} />
-                    <MetaRow label="Current CTC" value={data.candidateId?.currentCTC} />
-                    <MetaRow label="Expected CTC" value={data.candidateId?.expectedCTC} />
-                    <div className="pt-2">
-                      <span className="text-[10px] font-black text-gray-400 uppercase mb-2 block tracking-widest">Skills</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(data.candidateId?.skills || "").split(',').map((skill, idx) => skill.trim() && (
-                          <span key={idx} className="px-2 py-0.5 bg-white border border-gray-200 text-gray-600 rounded-md text-[9px] font-bold">
-                            {skill.trim()}
-                          </span>
-                        ))}
-                        {!data.candidateId?.skills && <span className="text-[10px] text-gray-400 italic font-medium">No skills listed</span>}
-                      </div>
+                      <h3 className="text-xs font-bold uppercase tracking-widest">Banking Profile</h3>
+                   </div>
+                   {!isEditingBank && (
+                    <button 
+                      onClick={() => setIsEditingBank(true)} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-600 border border-blue-100 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-50 transition-all shadow-sm active:scale-95"
+                    >
+                      <FaEdit size={14} />
+                      <span>EDIT</span>
+                    </button>
+                  )}
+               </div>
+               
+               <div className="p-4 space-y-3">
+                  {isEditingBank ? (
+                    <div className="space-y-3">
+                        <input value={bankForm.bankName} onChange={e => setBankForm({...bankForm, bankName: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500" placeholder="Bank Name" />
+                        <input value={bankForm.accountNumber} onChange={e => setBankForm({...bankForm, accountNumber: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold font-mono outline-none focus:ring-1 focus:ring-blue-500" placeholder="A/C Number" />
+                         <div className="flex gap-2">
+                            <button onClick={handleSaveBankDetails} className="flex-1 h-10 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-blue-100 active:scale-95 transition-all">Save</button>
+                            <button onClick={() => setIsEditingBank(false)} className="px-6 h-10 bg-gray-50 text-gray-400 border border-gray-100 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-100 transition-all">Cancel</button>
+                         </div>
                     </div>
+                  ) : (
+                     <div className="space-y-2">
+                        <MetaRow icon={<FaBuilding className="text-blue-500" />} label="Financial Institution" value={data.documents?.bankDetails?.bankName} />
+                        <MetaRow icon={<FaBuilding className="text-blue-500" />} label="Account Repository" value={data.documents?.bankDetails?.accountNumber} />
+                        <MetaRow icon={<FaBuilding className="text-blue-500" />} label="Transit Code (IFSC)" value={data.documents?.bankDetails?.ifscCode} />
+                     </div>
+                  )}
+               </div>
+            </div>
+
+            {/* Emergency #1 Card - Sleek Minimalist */}
+            <div className="bg-white rounded-2xl shadow-lg border-t-4 border-emerald-500 overflow-hidden group hover:shadow-xl transition-all duration-500">
+               <div className="p-5 bg-gray-50 flex items-center justify-between border-b border-gray-100">
+                  <div className="flex items-center gap-3 text-gray-800">
+                     <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner border border-emerald-100">
+                        <FaAsterisk size={14} />
+                     </div>
+                     <h3 className="text-xs font-bold uppercase tracking-widest">Emergency #1</h3>
                   </div>
-                </div>
-              </div>
+                   {!isEditingEmergency1 && (
+                    <button 
+                      onClick={() => setIsEditingEmergency1(true)} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm active:scale-95"
+                    >
+                      <FaEdit size={14} />
+                      <span>EDIT</span>
+                    </button>
+                  )}
+               </div>
+               <div className="p-4">
+                  {isEditingEmergency1 ? (
+                    <div className="space-y-3">
+                        <input value={emergency1Form.name} onChange={e => setEmergency1Form({...emergency1Form, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold outline-none" placeholder="Name" />
+                        <input value={emergency1Form.phone} onChange={e => setEmergency1Form({...emergency1Form, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold outline-none" placeholder="Phone" />
+                        <div className="flex gap-2">
+                            <button onClick={() => handleSaveEmergencyContact(1)} className="flex-1 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-emerald-100 active:scale-95 transition-all">Save</button>
+                            <button onClick={() => setIsEditingEmergency1(false)} className="px-6 h-10 bg-gray-50 text-gray-400 border border-gray-100 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-100 transition-all">Cancel</button>
+                         </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                       <MetaRow icon={<FaUser className="text-emerald-500" />} label="Identity" value={data.documents?.emergencyContact1?.name} />
+                       <MetaRow icon={<FaBuilding className="text-emerald-500" />} label="Emergency Line" value={data.documents?.emergencyContact1?.phone} />
+                    </div>
+                  )}
+               </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <div className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-gray-400">Onboarding Metric</h4>
-                <div className="flex items-end gap-2 mb-4">
-                  <span className="text-4xl font-black">{data.completionPercentage ?? 0}%</span>
-                  <span className="text-xs font-bold mb-1 opacity-50">Score</span>
+            {/* Emergency #2 Card - Sleek Minimalist */}
+            <div className="bg-white rounded-2xl shadow-lg border-t-4 border-teal-500 overflow-hidden group hover:shadow-xl transition-all duration-500">
+               <div className="p-5 bg-gray-50 flex items-center justify-between border-b border-gray-100">
+                   <div className="flex items-center gap-3 text-gray-800">
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shadow-inner border border-teal-100">
+                         <FaAsterisk size={14} />
+                      </div>
+                      <h3 className="text-xs font-bold uppercase tracking-widest">Emergency #2</h3>
+                   </div>
+                   {!isEditingEmergency2 && (
+                    <button 
+                      onClick={() => setIsEditingEmergency2(true)} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-teal-600 border border-teal-100 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-teal-50 transition-all shadow-sm active:scale-95"
+                    >
+                      <FaEdit size={14} />
+                      <span>EDIT</span>
+                    </button>
+                  )}
                 </div>
-                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${data.completionPercentage ?? 0}%` }}></div>
-                </div>
-                <p className="mt-4 text-[10px] font-medium text-gray-500 italic uppercase tracking-tighter">Requires 100% for full clearance</p>
-              </div>
-
-              <div className="bg-white border border-gray-100 rounded-xl p-5 space-y-4">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Record Hash</p>
-                <code className="text-[9px] text-blue-600 bg-blue-50 px-2 py-1 rounded block break-all font-mono">{data._id}</code>
-                <div className="pt-2">
-                  <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1">Created At</p>
-                  <p className="text-xs font-bold text-gray-700">{data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A'}</p>
-                </div>
-              </div>
+                <div className="p-4">
+                   {isEditingEmergency2 ? (
+                     <div className="space-y-3">
+                         <input value={emergency2Form.name} onChange={e => setEmergency2Form({...emergency2Form, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold outline-none" placeholder="Name" />
+                         <input value={emergency2Form.phone} onChange={e => setEmergency2Form({...emergency2Form, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold outline-none" placeholder="Phone" />
+                         <div className="flex gap-2">
+                            <button onClick={() => handleSaveEmergencyContact(2)} className="flex-1 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-teal-100 active:scale-95 transition-all">Save</button>
+                            <button onClick={() => setIsEditingEmergency2(false)} className="px-6 h-10 bg-gray-50 text-gray-400 border border-gray-100 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-100 transition-all">Cancel</button>
+                         </div>
+                     </div>
+                  ) : (
+                    <div className="space-y-2">
+                       <MetaRow icon={<FaUser className="text-teal-500" />} label="Identity" value={data.documents?.emergencyContact2?.name} />
+                       <MetaRow icon={<FaBuilding className="text-teal-500" />} label="Emergency Line" value={data.documents?.emergencyContact2?.phone} />
+                    </div>
+                  )}
+               </div>
             </div>
+
           </div>
         </div>
       </div>

@@ -1,3 +1,7 @@
+
+
+
+
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import CountUp from 'react-countup';
@@ -25,8 +29,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-
-const API_BASE_URL = 'http://localhost:5000/api'
+import { API_BASE_URL } from '../utils/config';
 
 const COLORS = [
   '#4F46E5', // Indigo 600
@@ -96,6 +99,9 @@ const RecruitmentDashboard = () => {
   });
   const [statusRole, setStatusRole] = useState("All");
   const [scoreRole, setScoreRole] = useState("All");
+  const [tatRole, setTatRole] = useState("All");
+  const [trendRole, setTrendRole] = useState("All");
+  const [trendMonth, setTrendMonth] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -107,10 +113,14 @@ const RecruitmentDashboard = () => {
         const response = await axios.get(`${API_BASE_URL}/applications/stats`, {
           params: {
             statusRole: statusRole,
-            scoreRole: scoreRole
+            scoreRole: scoreRole,
+            tatRole: tatRole,
+            trendRole: trendRole,
+            ...(trendMonth ? { trendMonth } : {})
           }
         });
         if (response.data.success) {
+          console.log("Recruitment Stats:", response.data.stats);
           setStats(response.data.stats);
         }
         setLoading(false);
@@ -122,15 +132,15 @@ const RecruitmentDashboard = () => {
     };
 
     fetchStats();
-  }, [statusRole, scoreRole]);
+  }, [statusRole, scoreRole, tatRole, trendRole, trendMonth]);
 
   // Calculate additional metrics
-  const interviewToSelectedRate = stats.interview > 0 
-    ? ((stats.selected / stats.interview) * 100).toFixed(1) 
+  const interviewToSelectedRate = stats.interview > 0
+    ? ((stats.selected / stats.interview) * 100).toFixed(1)
     : 0;
-  
-  const rejectionRate = stats.totalApplicants > 0 
-    ? ((stats.rejected / stats.totalApplicants) * 100).toFixed(1) 
+
+  const rejectionRate = stats.totalApplicants > 0
+    ? ((stats.rejected / stats.totalApplicants) * 100).toFixed(1)
     : 0;
 
   if (loading) {
@@ -164,33 +174,38 @@ const RecruitmentDashboard = () => {
       <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           icon={FiUsers}
-          label={`Total Applicants: ${stats.totalApplicants || 0}`}
+          label="Total Applicants"
+          value={stats.totalApplicants || 0}
           color="indigo"
           onClick={() => navigate("/job-applicants")}
         />
         <StatCard
           icon={FiUserPlus}
-          label={`Interviews: ${stats.interview || 0}`}
+          label="Interviews"
+          value={stats.interview || 0}
           color="amber"
-          onClick={() => navigate("/job-applicants?status=Interview")}
+          onClick={() => navigate("/schedule-interviews")}
         />
         <StatCard
           icon={FiUserCheck}
-          label={`Selected: ${stats.selected || 0}`}
+          label="Selected"
+          value={stats.selected || 0}
           color="emerald"
-          onClick={() => navigate("/job-applicants?status=Selected")}
+          onClick={() => navigate("/selected-candidates")}
         />
         <StatCard
           icon={FiUserX}
-          label={`Rejected: ${stats.rejected || 0}`}
+          label="Rejected"
+          value={stats.rejected || 0}
           color="rose"
-          onClick={() => navigate("/job-applicants?status=Rejected")}
+          onClick={() => navigate("/rejected-candidates")}
         />
         <StatCard
-          icon={FiTrendingUp}
-          label={`Success Rate: ${interviewToSelectedRate}%`}
-          color="cyan"
-          onClick={() => navigate("/job-applicants")}
+          icon={FiBriefcase}
+          label="Total Vacancies"
+          value={stats.totalVacancies || 0}
+          color="purple"
+          onClick={() => navigate("/job-positions-status")}
         />
       </div>
 
@@ -327,7 +342,7 @@ const RecruitmentDashboard = () => {
       {/* 3. Quality Metrics & Quick Actions - Like AttendanceDashboard layout */}
       <div className="grid grid-cols-1 gap-8 mb-8 lg:grid-cols-2">
         {/* Quality Metrics Cards */}
-        <div className="bg-white px-4 py-4 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white px-4 py-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[400px]">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-bold text-gray-800">Quality Metrics</h3>
@@ -336,7 +351,7 @@ const RecruitmentDashboard = () => {
             <FiTrendingUp className="text-2xl text-indigo-400 opacity-50" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
             <QualityCard
               label="50+ Score"
               value={stats.qualityMetrics?.score50plus || 0}
@@ -381,36 +396,120 @@ const RecruitmentDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions - Like AttendanceDashboard */}
-        <div className="bg-white px-2 py-2 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center group cursor-pointer hover:border-indigo-200 transition-all hover:bg-slate-50/50" onClick={() => navigate("/job-posts")}>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-              <FiBriefcase className="text-2xl" />
+        {/* 3. Hiring TAT (Turnaround Time) - Candidate-wise Graph */}
+        <div className="bg-white px-2 py-2 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[400px]">
+          <div className="flex items-center justify-between mb-3 px-2">
+            <div>
+              <h3 className="text-base font-bold text-gray-800">Hiring TAT (Days)</h3>
+              <p className="text-xs text-gray-500">Candidate-wise hiring duration</p>
             </div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Manage Job Posts</h3>
-            <p className="text-sm text-gray-500 max-w-xs mx-auto">
-              Create, update, and manage your job postings to attract top talent.
-            </p>
-            <button className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
-              Go to Job Posts →
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-600 bg-white"
+                value={tatRole}
+                onChange={(e) => setTatRole(e.target.value)}
+              >
+                <option value="All">All Roles</option>
+                {stats.availableRoles?.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => navigate("/job-applicants")}
+                className="font-bold text-indigo-600 transition-colors text-xs hover:text-indigo-800 whitespace-nowrap"
+              >
+                View Details →
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 w-full overflow-x-auto">
+            {stats.tatDistribution?.length > 0 ? (
+              <div style={{ minWidth: Math.max(stats.tatDistribution.length * 50, 400) }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stats.tatDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 10 }}
+                      angle={-45}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 11 }}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      formatter={(value) => [`${value} Days`, 'Hiring TAT']}
+                    />
+                    <Bar dataKey="days" radius={[4, 4, 0, 0]} barSize={25}>
+                      {stats.tatDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-sm text-gray-400">
+                <FiBriefcase className="w-8 h-8 mb-2 opacity-20" />
+                <p>No TAT data available</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+
+
       {/* 4. Monthly Trend - Additional Chart like AttendanceDashboard */}
       <div className="bg-white px-2 py-2 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[300px] mb-4">
-        <div className="flex items-center justify-between mb-3 px-2">
+        <div className="flex items-center justify-between mb-3 px-2 flex-wrap gap-2">
           <div>
             <h3 className="text-base font-bold text-gray-800">Monthly Application Trend</h3>
-            <p className="text-xs text-gray-500">Applications received over time</p>
+            <p className="text-xs text-gray-500">
+              {trendMonth ? `Daily breakdown for ${new Date(trendMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}` : 'Applications over the last 6 months'}
+            </p>
           </div>
-          <button
-            onClick={() => navigate("/job-applicants")}
-            className="font-bold text-indigo-600 transition-colors text-xs hover:text-indigo-800"
-          >
-            View All →
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-600 bg-white"
+              value={trendRole}
+              onChange={(e) => setTrendRole(e.target.value)}
+            >
+              <option value="All">All Roles</option>
+              {stats.availableRoles?.map((role) => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+            <input
+              type="month"
+              className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-600 bg-white cursor-pointer"
+              value={trendMonth}
+              onChange={(e) => setTrendMonth(e.target.value)}
+              title="Filter by month for daily view"
+            />
+            {trendMonth && (
+              <button
+                onClick={() => setTrendMonth("")}
+                className="text-[10px] font-bold text-gray-400 hover:text-rose-500 transition-colors"
+                title="Clear month filter"
+              >
+                ✕ Clear
+              </button>
+            )}
+            <button
+              onClick={() => navigate("/job-applicants")}
+              className="font-bold text-indigo-600 transition-colors text-xs hover:text-indigo-800 whitespace-nowrap"
+            >
+              View All →
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 w-full">
@@ -425,17 +524,21 @@ const RecruitmentDashboard = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
-                  dataKey="month"
+                  dataKey="name"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#64748b', fontSize: 11 }}
+                  interval="preserveStartEnd"
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#64748b', fontSize: 11 }}
                 />
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  formatter={(value) => [`${value} Applications`, 'Count']}
+                />
                 <Area
                   type="monotone"
                   dataKey="count"
@@ -458,48 +561,30 @@ const RecruitmentDashboard = () => {
   );
 };
 
-// StatCard component - Exactly like AttendanceDashboard
-const StatCard = ({ icon: Icon, label, color, onClick }) => {
+// StatCard component - Matching the main Dashboard design
+const StatCard = ({ icon: Icon, label, value, color, onClick, isPercentage }) => {
   const themes = {
-    indigo: {
-      iconBg: "bg-indigo-100 text-indigo-600",
-      border: "border-indigo-500",
-    },
-    emerald: {
-      iconBg: "bg-emerald-100 text-emerald-600",
-      border: "border-emerald-500",
-    },
-    amber: {
-      iconBg: "bg-amber-100 text-amber-600",
-      border: "border-amber-500",
-    },
-    rose: {
-      iconBg: "bg-rose-100 text-rose-600",
-      border: "border-rose-500",
-    },
-    cyan: {
-      iconBg: "bg-cyan-100 text-cyan-600",
-      border: "border-cyan-500",
-    },
+    indigo: "border-indigo-500",
+    emerald: "border-emerald-500",
+    amber: "border-amber-500",
+    rose: "border-rose-500",
+    cyan: "border-cyan-500",
   };
 
   const currentTheme = themes[color] || themes.indigo;
 
   return (
     <div
-      className={`flex flex-row items-center gap-2 p-2 transition-all duration-300 bg-white rounded-xl shadow-sm border-t-4 ${currentTheme.border} cursor-pointer hover:shadow-md hover:-translate-y-1`}
+      className={`bg-white rounded-lg p-3 shadow-sm border-t-4 ${currentTheme} cursor-pointer hover:shadow-md transition-all duration-300 flex items-center justify-between`}
       onClick={onClick}
     >
-      <div
-        className={`w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg ${currentTheme.iconBg}`}
-      >
-        <Icon className="text-base" />
+      <div className="flex items-center gap-2">
+        <Icon className="text-gray-400 text-base flex-shrink-0" />
+        <div className="text-sm font-medium text-gray-700">{label}</div>
       </div>
-
-      <div className="flex flex-col min-w-0">
-        <p className="text-xs font-semibold tracking-wide text-gray-700 uppercase truncate">
-          {label}
-        </p>
+      <div className="text-sm font-bold text-gray-800">
+        <CountUp end={value} duration={2} separator="," />
+        {isPercentage && "%"}
       </div>
     </div>
   );
@@ -508,7 +593,7 @@ const StatCard = ({ icon: Icon, label, color, onClick }) => {
 // Quality Card component for metrics
 const QualityCard = ({ label, value, total, color }) => {
   const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-  
+
   const colorClasses = {
     amber: "bg-amber-50 border-amber-100",
     emerald: "bg-emerald-50 border-emerald-100",
@@ -518,26 +603,24 @@ const QualityCard = ({ label, value, total, color }) => {
   };
 
   return (
-    <div className={`p-3 rounded-xl border ${colorClasses[color] || colorClasses.indigo}`}>
+    <div className={`p-2 px-3 rounded-xl border ${colorClasses[color] || colorClasses.indigo} shadow-sm`}>
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
-        <span className="text-xs font-bold text-gray-700">{percentage}%</span>
+        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
       </div>
-      <div className="flex items-end justify-between">
-        <span className="text-lg font-black text-gray-800">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xl font-black text-gray-800">
           <CountUp end={value} duration={1.5} />
         </span>
-        <span className="text-[9px] text-gray-400">/ {total}</span>
+        <span className="text-[10px] font-bold text-gray-600">{percentage}%</span>
       </div>
       <div className="w-full h-1 bg-white rounded-full mt-2 overflow-hidden">
         <div
-          className={`h-full rounded-full ${
-            color === 'amber' ? 'bg-amber-500' :
+          className={`h-full rounded-full ${color === 'amber' ? 'bg-amber-500' :
             color === 'emerald' ? 'bg-emerald-500' :
-            color === 'cyan' ? 'bg-cyan-500' :
-            color === 'purple' ? 'bg-purple-500' :
-            'bg-indigo-500'
-          }`}
+              color === 'cyan' ? 'bg-cyan-500' :
+                color === 'purple' ? 'bg-purple-500' :
+                  'bg-indigo-500'
+            }`}
           style={{ width: `${percentage}%` }}
         />
       </div>
