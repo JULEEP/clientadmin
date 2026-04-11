@@ -8,6 +8,218 @@ import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { CSVLink } from "react-csv";
 
+// Dummy Data for Fallback
+const DUMMY_EMPLOYEES = [
+  {
+    _id: "dummy_emp_001",
+    employeeId: "EMP001",
+    name: "Rajesh Kumar",
+    email: "rajesh.kumar@example.com",
+    phone: "9876543210",
+    department: "IT",
+    role: "Senior Software Engineer",
+    designation: "Senior Software Engineer",
+    joinDate: "2023-01-15T00:00:00.000Z",
+    salaryPerMonth: 75000,
+    shiftHours: 9,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_001"
+  },
+  {
+    _id: "dummy_emp_002",
+    employeeId: "EMP002",
+    name: "Priya Sharma",
+    email: "priya.sharma@example.com",
+    phone: "9876543211",
+    department: "HR",
+    role: "HR Manager",
+    designation: "HR Manager",
+    joinDate: "2023-02-20T00:00:00.000Z",
+    salaryPerMonth: 65000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_002"
+  },
+  {
+    _id: "dummy_emp_003",
+    employeeId: "EMP003",
+    name: "Amit Patel",
+    email: "amit.patel@example.com",
+    phone: "9876543212",
+    department: "Sales",
+    role: "Sales Executive",
+    designation: "Sales Executive",
+    joinDate: "2023-03-10T00:00:00.000Z",
+    salaryPerMonth: 45000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_001"
+  },
+  {
+    _id: "dummy_emp_004",
+    employeeId: "EMP004",
+    name: "Neha Gupta",
+    email: "neha.gupta@example.com",
+    phone: "9876543213",
+    department: "Marketing",
+    role: "Marketing Specialist",
+    designation: "Marketing Specialist",
+    joinDate: "2023-04-05T00:00:00.000Z",
+    salaryPerMonth: 55000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "inactive",
+    isActive: false,
+    location: "loc_003"
+  },
+  {
+    _id: "dummy_emp_005",
+    employeeId: "EMP005",
+    name: "Suresh Reddy",
+    email: "suresh.reddy@example.com",
+    phone: "9876543214",
+    department: "Operations",
+    role: "Operations Manager",
+    designation: "Operations Manager",
+    joinDate: "2023-05-12T00:00:00.000Z",
+    salaryPerMonth: 80000,
+    shiftHours: 9,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_002"
+  },
+  {
+    _id: "dummy_emp_006",
+    employeeId: "EMP006",
+    name: "Anjali Desai",
+    email: "anjali.desai@example.com",
+    phone: "9876543215",
+    department: "IT",
+    role: "Frontend Developer",
+    designation: "Frontend Developer",
+    joinDate: "2023-06-18T00:00:00.000Z",
+    salaryPerMonth: 50000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_001"
+  },
+  {
+    _id: "dummy_emp_007",
+    employeeId: "EMP007",
+    name: "Vikram Singh",
+    email: "vikram.singh@example.com",
+    phone: "9876543216",
+    department: "Finance",
+    role: "Finance Analyst",
+    designation: "Finance Analyst",
+    joinDate: "2023-07-22T00:00:00.000Z",
+    salaryPerMonth: 58000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "inactive",
+    isActive: false,
+    location: "loc_003"
+  },
+  {
+    _id: "dummy_emp_008",
+    employeeId: "EMP008",
+    name: "Divya Mehta",
+    email: "divya.mehta@example.com",
+    phone: "9876543217",
+    department: "Customer Support",
+    role: "Support Lead",
+    designation: "Support Lead",
+    joinDate: "2023-08-30T00:00:00.000Z",
+    salaryPerMonth: 48000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_002"
+  },
+  {
+    _id: "dummy_emp_009",
+    employeeId: "EMP009",
+    name: "Manish Joshi",
+    email: "manish.joshi@example.com",
+    phone: "9876543218",
+    department: "IT",
+    role: "Backend Developer",
+    designation: "Backend Developer",
+    joinDate: "2023-09-14T00:00:00.000Z",
+    salaryPerMonth: 52000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_001"
+  },
+  {
+    _id: "dummy_emp_010",
+    employeeId: "EMP010",
+    name: "Kavita Nair",
+    email: "kavita.nair@example.com",
+    phone: "9876543219",
+    department: "HR",
+    role: "Recruitment Specialist",
+    designation: "Recruitment Specialist",
+    joinDate: "2023-10-05T00:00:00.000Z",
+    salaryPerMonth: 42000,
+    shiftHours: 8,
+    weekOffPerMonth: 4,
+    status: "active",
+    isActive: true,
+    location: "loc_003"
+  }
+];
+
+const DUMMY_LOCATIONS = [
+  {
+    _id: "loc_001",
+    name: "Mumbai Head Office",
+    latitude: "19.0760",
+    longitude: "72.8777",
+    address: "Andheri East, Mumbai"
+  },
+  {
+    _id: "loc_002",
+    name: "Delhi Branch",
+    latitude: "28.6139",
+    longitude: "77.2090",
+    address: "Connaught Place, New Delhi"
+  },
+  {
+    _id: "loc_003",
+    name: "Bangalore Office",
+    latitude: "12.9716",
+    longitude: "77.5946",
+    address: "Indiranagar, Bangalore"
+  },
+  {
+    _id: "loc_004",
+    name: "Pune Satellite Office",
+    latitude: "18.5204",
+    longitude: "73.8567",
+    address: "Hinjewadi, Pune"
+  },
+  {
+    _id: "loc_005",
+    name: "Chennai Center",
+    latitude: "13.0827",
+    longitude: "80.2707",
+    address: "T Nagar, Chennai"
+  }
+];
+
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -18,6 +230,7 @@ const EmployeeList = () => {
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [loading, setLoading] = useState(false);
   const [showInactiveOnly, setShowInactiveOnly] = useState(false);
+  const [isUsingDummyData, setIsUsingDummyData] = useState(false);
   
   // Filter states
   const [filterDepartment, setFilterDepartment] = useState("");
@@ -47,10 +260,20 @@ const EmployeeList = () => {
   const clientId = localStorage.getItem('clientId') || '';
   const API_BASE_URL = "http://localhost:5000/api";
 
+  const loadDummyData = () => {
+    console.log("📊 Loading dummy data as fallback");
+    setEmployees(DUMMY_EMPLOYEES);
+    setLocations(DUMMY_LOCATIONS);
+    setIsUsingDummyData(true);
+    extractUniqueValues(DUMMY_EMPLOYEES);
+  };
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
+        setIsUsingDummyData(false);
+        
         // Pass clientId in params
         const response = await axios.get(
           `${API_BASE_URL}/employees/get-employees/${clientId}`
@@ -69,11 +292,20 @@ const EmployeeList = () => {
           console.log("API Message:", response.data.message);
         }
         
-        setEmployees(employeesData || []);
-        extractUniqueValues(employeesData || []);
+        // Check if we got valid data
+        if (employeesData && employeesData.length > 0) {
+          setEmployees(employeesData);
+          extractUniqueValues(employeesData);
+          setIsUsingDummyData(false);
+        } else {
+          // No data from API, use dummy data
+          console.log("No employee data received from API, using dummy data");
+          loadDummyData();
+        }
       } catch (error) {
         console.error("❌ Error fetching employees:", error);
-        setEmployees([]);
+        // Use dummy data on error
+        loadDummyData();
       } finally {
         setLoading(false);
       }
@@ -95,10 +327,18 @@ const EmployeeList = () => {
         } else if (response.data?.data && Array.isArray(response.data.data)) {
           locationsData = response.data.data;
         }
-        setLocations(locationsData || []);
+        
+        if (locationsData && locationsData.length > 0) {
+          setLocations(locationsData);
+        } else {
+          // Use dummy locations if no data from API
+          console.log("No location data received from API, using dummy locations");
+          setLocations(DUMMY_LOCATIONS);
+        }
       } catch (error) {
         console.error("❌ Error fetching locations:", error);
-        setLocations([]);
+        // Use dummy locations on error
+        setLocations(DUMMY_LOCATIONS);
       }
     };
 
@@ -106,7 +346,9 @@ const EmployeeList = () => {
       fetchEmployees();
       fetchLocations();
     } else {
-      console.error("Client ID not found. Please login again.");
+      console.error("Client ID not found. Using dummy data.");
+      loadDummyData();
+      setLocations(DUMMY_LOCATIONS);
     }
   }, [clientId]);
 
@@ -204,6 +446,18 @@ const EmployeeList = () => {
   const handleEdit = (employee) => navigate(`/addemployee`, { state: { employee } });
 
   const handleToggleStatus = async (emp) => {
+    // If using dummy data, just update locally
+    if (isUsingDummyData) {
+      const newStatus = !isEmployeeHidden(emp);
+      setEmployees(employees.map(e => 
+        e._id === emp._id 
+          ? { ...e, isActive: newStatus, status: newStatus ? 'active' : 'inactive' } 
+          : e
+      ));
+      alert(`✅ Employee ${newStatus ? 'ACTIVATED' : 'DEACTIVATED'} successfully!`);
+      return;
+    }
+
     const isCurrentlyHidden = isEmployeeHidden(emp);
     const newStatus = isCurrentlyHidden ? 'active' : 'inactive';
     const action = isCurrentlyHidden ? 'ACTIVATE' : 'DEACTIVATE';
@@ -266,6 +520,13 @@ const EmployeeList = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this employee?")) {
+      // If using dummy data, just remove locally
+      if (isUsingDummyData) {
+        setEmployees(employees.filter((emp) => emp._id !== id));
+        alert("✅ Employee deleted successfully!");
+        return;
+      }
+
       try {
         await axios.delete(
           `${API_BASE_URL}/employees/delete-employee/${id}/${clientId}`
@@ -305,6 +566,20 @@ const EmployeeList = () => {
     }
 
     setLoading(true);
+    
+    // If using dummy data, just update locally
+    if (isUsingDummyData) {
+      setEmployees(employees.map((emp) =>
+        emp._id === selectedEmployeeForLocation._id
+          ? { ...emp, location: selectedLocationId }
+          : emp
+      ));
+      alert("✅ Location assigned successfully!");
+      handleCloseLocationModal();
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.put(
         `${API_BASE_URL}/employees/assign-location/${selectedEmployeeForLocation.employeeId}`,
@@ -370,6 +645,31 @@ const EmployeeList = () => {
         
         console.log("Imported Employees:", parsedData);
         
+        // If using dummy data, just add to local state
+        if (isUsingDummyData) {
+          const newEmployees = parsedData.map((emp, index) => ({
+            _id: `dummy_emp_${Date.now()}_${index}`,
+            employeeId: emp.employeeId || `EMP${Math.floor(Math.random() * 10000)}`,
+            name: emp.name || emp.Name || "Unknown",
+            email: emp.email || emp.Email || "",
+            phone: emp.phone || emp.Phone || "",
+            department: emp.department || emp.Department || "",
+            role: emp.role || emp.designation || emp.Role || "",
+            joinDate: emp.joinDate || emp.JoinDate || new Date().toISOString(),
+            salaryPerMonth: emp.salaryPerMonth || emp.Salary || 0,
+            shiftHours: emp.shiftHours || 8,
+            weekOffPerMonth: emp.weekOffPerMonth || 4,
+            status: "active",
+            isActive: true,
+            location: null
+          }));
+          setEmployees([...employees, ...newEmployees]);
+          extractUniqueValues([...employees, ...newEmployees]);
+          alert("✅ Employees imported successfully to local data!");
+          setLoading(false);
+          return;
+        }
+
         const response = await axios.post(
           `${API_BASE_URL}/employees/bulk-import/${clientId}`,
           { employees: parsedData }
@@ -524,7 +824,7 @@ const EmployeeList = () => {
     <div className="min-h-screen p-2 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="mx-auto max-w-9xl">
         {/* Client Info Banner */}
-        {clientId && (
+        {clientId && !isUsingDummyData && (
           <div className="p-3 mb-3 text-sm text-blue-700 bg-white rounded-lg shadow-md border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
@@ -538,6 +838,26 @@ const EmployeeList = () => {
               </div>
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
                 Total: {employees.length} | Active: {activeEmployees.length}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Dummy Data Warning Banner */}
+        {isUsingDummyData && (
+          <div className="p-3 mb-3 text-sm text-yellow-700 bg-yellow-50 rounded-lg shadow-md border border-yellow-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚠️</span>
+                <div>
+                  <span className="font-medium">Demo Mode:</span>
+                  <span className="ml-2 text-xs">
+                    Showing sample employee data. API connection may be unavailable.
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                Demo Data
               </span>
             </div>
           </div>

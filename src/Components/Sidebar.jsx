@@ -51,7 +51,10 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
       "/attendancelist": "Attendance Records",
       "/today-attendance": "Today Attendance",
       "/absent-today": "Absent Today",
+      "/regularization": "Regularization",
+      "/all-medical-certificatesforadmin": "AllMedicalCertificateForAdmin",
       "/leavelist": "Leaves",
+      "/holidays-calendar": "Holidays",
       "/payroll": "Payroll",
       "/permissions": "Permissions",
       "/all-expensives": "Expenses",
@@ -187,12 +190,20 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
                 { name: "Attendance Records", path: "/attendancelist" },
                 { name: "Today Attendance", path: "/today-attendance" },
                 { name: "Absent Today", path: "/absent-today" },
+                { name: "Regularization", path: "/regularization" },
+                { name: "AllMedicalCertificateForAdmin", path: "/all-medical-certificatesforadmin" },
+
               ],
             },
             {
               icon: <i className="ri-calendar-close-fill"></i>,
               name: "Leaves",
               path: "/leavelist",
+            },
+             {
+              icon: <i className="ri-calendar-close-fill"></i>,
+              name: "Holidays",
+              path: "/holidays-calendar",
             },
             {
               icon: <i className="ri-shield-keyhole-fill"></i>,
@@ -392,12 +403,20 @@ const Sidebar = ({ isMobile, onLinkClick, isCollapsed, setIsCollapsed }) => {
           { name: "Attendance Records", path: "/attendancelist" },
           { name: "Today Attendance", path: "/today-attendance" },
           { name: "Absent Today", path: "/absent-today" },
+          { name: "Regularization", path: "/regularization" },
+          { name: "AllMedicalCertificateForAdmin", path: "/all-medical-certificatesforadmin" },
+
         ],
       },
       {
         icon: <i className="ri-calendar-close-fill"></i>,
         name: "Leaves",
         path: "/leavelist",
+      },
+        {
+        icon: <i className="ri-calendar-close-fill"></i>,
+        name: "Holidays",
+        path: "/holidays-calendar",
       },
       {
         icon: <i className="ri-shield-keyhole-fill"></i>,

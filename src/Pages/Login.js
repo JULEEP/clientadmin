@@ -11,7 +11,6 @@ import {
   HeartPulse,
   MessageCircle,
   ShieldCheck,
-  ChevronDown,
   Menu,
   X,
   Star,
@@ -103,6 +102,10 @@ const LoginPage = () => {
     if (name.includes('hr') || name.includes('human resource')) {
       return { icon: <Users size={24} />, color: "bg-pink-100 text-pink-600", name: "HR Management", section: "hr" };
     }
+    // CRM
+    if (name.includes('crm')) {
+      return { icon: <Users size={24} />, color: "bg-rose-100 text-rose-600", name: "CRM System", section: "crm" };
+    }
     // Projects
     if (name.includes('project')) {
       return { icon: <Briefcase size={24} />, color: "bg-orange-100 text-orange-600", name: "Project Management", section: "projects" };
@@ -135,10 +138,6 @@ const LoginPage = () => {
     if (name.includes('knowledge')) {
       return { icon: <BookOpen size={24} />, color: "bg-cyan-100 text-cyan-600", name: "Knowledge", section: "knowledge" };
     }
-    // CRM
-    if (name.includes('crm')) {
-      return { icon: <Users size={24} />, color: "bg-rose-100 text-rose-600", name: "CRM", section: "crm" };
-    }
     // POS
     if (name.includes('pos') || name.includes('point of sale')) {
       return { icon: <DollarSign size={24} />, color: "bg-orange-100 text-orange-600", name: "Point of Sale", section: "pos" };
@@ -165,48 +164,6 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      // 1. First Attempt: Admin Login
-      const adminResponse = await fetch('https://attendancebackend-5cgn.onrender.com/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const adminData = await adminResponse.json();
-
-      if (adminResponse.ok) {
-        localStorage.setItem('adminToken', adminData.token);
-        localStorage.setItem('adminId', adminData.admin.id);
-        localStorage.setItem('adminName', adminData.admin.name);
-        localStorage.setItem('userRole', 'admin');
-        localStorage.removeItem('showProducts');
-        localStorage.removeItem('clientData');
-        navigate('/dashboard');
-        return;
-      }
-
-      // 2. Second Attempt: Employee Login
-      const empResponse = await fetch("https://api.timelyhealth.in/api/employees/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const empData = await empResponse.json();
-
-      if (empResponse.ok) {
-        localStorage.setItem("employeeData", JSON.stringify(empData.employee));
-        localStorage.setItem("employeeId", empData.employee._id);
-        localStorage.setItem("employeeEmail", empData.employee.email);
-        localStorage.setItem("employeeName", empData.employee.name);
-        localStorage.setItem('userRole', 'employee');
-        localStorage.removeItem('showProducts');
-        localStorage.removeItem('clientData');
-        navigate("/employeedashboard", { state: { email: empData.employee.email } });
-        return;
-      }
-
-      // 3. Third Attempt: Client Login
       let clientPayload = {};
       
       if (loginType === 'email') {
@@ -215,7 +172,7 @@ const LoginPage = () => {
         clientPayload = { clientId, password };
       }
 
-      const clientResponse = await fetch('http://localhost:5001/api/clients/clientlogin', {
+      const clientResponse = await fetch('http://localhost:5005/api/clients/clientlogin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(clientPayload),
@@ -229,7 +186,6 @@ const LoginPage = () => {
           ...clientDataResponse.client,
           accessibleProducts: clientDataResponse.client.accessibleProducts.map(product => ({
             ...product,
-            // If product has name field, use it, otherwise use productId name
             displayName: product.name || (product.productId?.name) || "Unknown Product",
             productCode: product.code || product.productId?.code || "N/A"
           }))
@@ -251,7 +207,7 @@ const LoginPage = () => {
         return;
       }
 
-      throw new Error(clientDataResponse.message || empData.message || adminData.message || 'Invalid credentials');
+      throw new Error(clientDataResponse.message || 'Invalid credentials');
 
     } catch (err) {
       setError(err.message);
@@ -441,7 +397,7 @@ const LoginPage = () => {
     );
   }
 
-  // Login Page
+  // Login Page - Client Only
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-6 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -500,12 +456,12 @@ const LoginPage = () => {
           >
             <div className="inline-flex items-center bg-gradient-to-r from-blue-100 to-purple-100 px-3 py-1 rounded-full mb-2">
               <Lock className="w-3 h-3 text-blue-600 mr-1" />
-              <span className="text-xs text-gray-600">Secure Access</span>
+              <span className="text-xs text-gray-600">Client Portal</span>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-              Welcome Back
+              Client Login
             </h1>
-            <p className="text-gray-500 text-xs mt-1">Sign in to continue your journey</p>
+            <p className="text-gray-500 text-xs mt-1">Sign in to access your products</p>
           </motion.div>
 
           {/* Login Type Toggle */}
@@ -682,7 +638,7 @@ const LoginPage = () => {
             animate={{ scale: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
             src="https://t3.ftcdn.net/jpg/04/72/65/82/360_F_472658260_9eT6d4HzAt7lDZ8d5SAb5opOZikRH7AC.jpg"
-            alt="Attendance Illustration"
+            alt="Client Portal Illustration"
             className="max-w-full h-40 object-contain rounded-lg shadow-xl mb-4"
           />
           
@@ -692,14 +648,14 @@ const LoginPage = () => {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="text-center"
           >
-            <h3 className="text-lg font-semibold mb-3">Quick Guide</h3>
+            <h3 className="text-lg font-semibold mb-3">Client Portal Guide</h3>
             <div className="space-y-2">
               <motion.div 
                 whileHover={{ scale: 1.02, x: 5 }}
                 className="flex items-center space-x-2 bg-white/20 rounded-lg p-2 backdrop-blur-sm"
               >
                 <Mail size={14} />
-                <p className="text-xs">Admin/Employee: Use email</p>
+                <p className="text-xs">Login with your registered email</p>
               </motion.div>
               
               <motion.div 
@@ -707,15 +663,23 @@ const LoginPage = () => {
                 className="flex items-center space-x-2 bg-white/20 rounded-lg p-2 backdrop-blur-sm"
               >
                 <Key size={14} />
-                <p className="text-xs">Client: Email or Client ID</p>
+                <p className="text-xs">Or use your unique Client ID</p>
               </motion.div>
               
               <motion.div 
                 whileHover={{ scale: 1.02, x: 5 }}
                 className="flex items-center space-x-2 bg-white/20 rounded-lg p-2 backdrop-blur-sm"
               >
+                <Package size={14} />
+                <p className="text-xs">Access all your purchased products</p>
+              </motion.div>
+
+              <motion.div 
+                whileHover={{ scale: 1.02, x: 5 }}
+                className="flex items-center space-x-2 bg-white/20 rounded-lg p-2 backdrop-blur-sm"
+              >
                 <Shield size={14} />
-                <p className="text-xs">Select product after login</p>
+                <p className="text-xs">Secure & encrypted access</p>
               </motion.div>
             </div>
           </motion.div>

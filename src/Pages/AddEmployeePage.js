@@ -1,1440 +1,80 @@
-// import { useState } from "react";
-// import { useNavigate } from "react-router-dom"; // ✅ import for navigation
-
-// const AddEmployeePage = () => {
-//   const navigate = useNavigate(); // ✅ initialize navigate
-
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [department, setDepartment] = useState("");
-//   const [role, setRole] = useState("");
-//   const [joinDate, setJoinDate] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [address, setAddress] = useState("");
-//   const [employeeId, setEmployeeId] = useState("");
-
-//   const [successMessage, setSuccessMessage] = useState("");
-//   const [errorMessage, setErrorMessage] = useState("");
-
-//   const departments = [
-//     "Developer",
-//     "Sales",
-//     "Marketing",
-//     "Medical",
-//     "Finance",
-//     "Nursing ",
-//     "Digital Marketing",
-//     "Management",
-//     "Laboratory Medicine ",
-//   ];
-
-//   const roles = [
-//     "Administrator",
-//     "Manager",
-//     "Team Lead",
-//     "Employee",
-//     "HR Manager",
-//     "Phlebotomist",
-//     "Staff Nurse",
-//     "Consultant",
-//     "Graphic Designer",
-//     "UI/UX & GRAPHIC DESIGNER",
-//     "SMM, & SEO executive ",
-//     "Web Developer",
-//   ];
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setSuccessMessage("");
-//     setErrorMessage("");
-
-//     try {
-//       const response = await fetch("http://localhost:5000/api/employees/add-employee", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           name,
-//           email,
-//           password,
-//           department,
-//           role,
-//           joinDate,
-//           phone,
-//           address,
-//           employeeId,
-//         }),
-//       });
-
-//       const data = await response.json();
-
-//       if (!response.ok) {
-//         throw new Error(data.error || "Something went wrong");
-//       }
-
-//       setSuccessMessage("✅ Employee added successfully!");
-//       setName("");
-//       setEmail("");
-//       setPassword("");
-//       setDepartment("");
-//       setRole("");
-//       setJoinDate("");
-//       setPhone("");
-//       setAddress("");
-//       setEmployeeId("");
-
-//       // ✅ Navigate to employee list after success
-//       setTimeout(() => {
-//         navigate("/employeelist");
-//       }, 1000);
-
-//     } catch (error) {
-//       setErrorMessage(`❌ ${error.message}`);
-//     }
-//   };
-
-//   return (
-//     <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-lg">
-//       <h2 className="mb-6 text-2xl font-semibold text-blue-900">Add New Employee</h2>
-
-//       {/* Success or Error Message */}
-//       {successMessage && (
-//         <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
-//           {successMessage}
-//         </div>
-//       )}
-//       {errorMessage && (
-//         <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
-//           {errorMessage}
-//         </div>
-//       )}
-
-//       <form onSubmit={handleSubmit}>
-//         {/* Name */}
-//         <div className="mb-4">
-//           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-//             Full Name
-//           </label>
-//           <input
-//             id="name"
-//             type="text"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             placeholder="Enter employee name"
-//             required
-//           />
-//         </div>
-
-//         {/* Email */}
-//         <div className="mb-4">
-//           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-//             Email Address
-//           </label>
-//           <input
-//             id="email"
-//             type="email"
-//             value={email}
-//             onChange={(e) => setEmail(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             placeholder="Enter employee email"
-//             required
-//           />
-//         </div>
-//         {/* Password */}
-//         <div className="mb-4">
-//           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-//             Password
-//           </label>
-//           <input
-//             id="password"
-//             type="password"
-//             value={password}
-//             onChange={(e) => setPassword(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             placeholder="Enter employee password"
-//             required
-//           />
-//         </div>
-
-
-//         {/* Department */}
-//         <div className="mb-4">
-//           <label htmlFor="department" className="block text-sm font-medium text-gray-700">
-//             Department
-//           </label>
-//           <select
-//             id="department"
-//             value={department}
-//             onChange={(e) => setDepartment(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           >
-//             <option value="">Select Department</option>
-//             {departments.map((dept) => (
-//               <option key={dept} value={dept}>
-//                 {dept}
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* Role */}
-//         <div className="mb-4">
-//           <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-//             Role
-//           </label>
-//           <select
-//             id="role"
-//             value={role}
-//             onChange={(e) => setRole(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           >
-//             <option value="">Select Role</option>
-//             {roles.map((roleOption) => (
-//               <option key={roleOption} value={roleOption}>
-//                 {roleOption}
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* Join Date */}
-//         <div className="mb-4">
-//           <label htmlFor="joinDate" className="block text-sm font-medium text-gray-700">
-//             Join Date
-//           </label>
-//           <input
-//             id="joinDate"
-//             type="date"
-//             value={joinDate}
-//             onChange={(e) => setJoinDate(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//           />
-//         </div>
-
-//         {/* Phone */}
-//         <div className="mb-4">
-//           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-//             Phone Number
-//           </label>
-//           <input
-//             id="phone"
-//             type="tel"
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             placeholder="e.g. +91 9876543210"
-//           />
-//         </div>
-
-//         {/* Address */}
-//         <div className="mb-4">
-//           <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-//             Address
-//           </label>
-//           <textarea
-//             id="address"
-//             value={address}
-//             onChange={(e) => setAddress(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             placeholder="Enter full address"
-//             rows="3"
-//           ></textarea>
-//         </div>
-
-//         {/* Employee ID */}
-//         <div className="mb-4">
-//           <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700">
-//             Employee ID
-//           </label>
-//           <input
-//             id="employeeId"
-//             type="text"
-//             value={employeeId}
-//             onChange={(e) => setEmployeeId(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             placeholder="Enter unique employee ID"
-//             required
-//           />
-//         </div>
-
-//         {/* Submit Button */}
-//         <div className="flex justify-end">
-//           <button
-//             type="submit"
-//             className="px-6 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
-//           >
-//             Add Employee
-//           </button>
-//         </div>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default AddEmployeePage;
-
-// import axios from "axios";
-// import { useEffect, useState } from "react";
-// import { useNavigate } from "react-router-dom";
-
-
-// const AddEmployeePage = () => {
-//   const navigate = useNavigate();
-
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [department, setDepartment] = useState("");
-//   const [role, setRole] = useState("");
-//   const [joinDate, setJoinDate] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [address, setAddress] = useState("");
-//   const [employeeId, setEmployeeId] = useState("");
-//   const [locationId, setLocationId] = useState("");
-//   const [shift, setShift] = useState("");
-
-//   const [locations, setLocations] = useState([]);
-//   const [showLocationModal, setShowLocationModal] = useState(false);
-//   const [loading, setLoading] = useState(false);
-
-//   const [successMessage, setSuccessMessage] = useState("");
-//   const [errorMessage, setErrorMessage] = useState("");
-
-//   // ✅ Department & Roles
-//   const departments = [
-//     "Developer",
-//     "Sales",
-//     "Marketing",
-//     "Medical",
-//     "Finance",
-//     "Nursing",
-//     "Digital Marketing",
-//     "Management",
-//     "Laboratory Medicine",
-//   ];
-
-//   const roles = [
-//     "Administrator",
-//     "Manager",
-//     "Team Lead",
-//     "Employee",
-//     "HR Manager",
-//     "Phlebotomist",
-//     "Staff Nurse",
-//     "Consultant",
-//     "Graphic Designer",
-//     "UI/UX & GRAPHIC DESIGNER",
-//     "SMM & SEO Executive",
-//     "Web Developer",
-//   ];
-
-//   // ✅ Updated Shift Assignments (with start-end time)
-//   const shifts = {
-//     A: "A (10:00 AM - 7:00 PM)",
-//     B: "B (9:00 AM - 7:00 PM)",
-//     C: "C (7:00 AM - 5:00 PM)",
-//     D: "D (6:30 AM - 4:00 PM)",
-//     E: "E (2:00 PM - 11:00 PM)",
-//     F: "F (8:00 AM - 6:00 PM)",
-//     G: "G (10:00 AM - 9:00 PM)",
-//     H: "H (Split Shift 7:00–13:00 & 17:00–21:30)",
-//     I: "I (11:00 AM - 8:00 PM)",
-//   };
-
-//   // ✅ Fetch all locations
-//   useEffect(() => {
-//     const fetchLocations = async () => {
-//       try {
-//         const res = await axios.get(
-//           "http://localhost:5000/api/location/alllocation"
-//         );
-//         if (res.data && res.data.locations) {
-//           setLocations(res.data.locations);
-//         }
-//       } catch (err) {
-//         console.error("❌ Error fetching locations:", err);
-//       }
-//     };
-//     fetchLocations();
-//   }, []);
-
-//   // ✅ Add Employee with Shift & Location
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setSuccessMessage("");
-//     setErrorMessage("");
-//     setLoading(true);
-
-//     try {
-//       // Step 1: Create Employee
-//       const response = await fetch(
-//         "http://localhost:5000/api/employees/add-employee",
-//         {
-//           method: "POST",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify({
-//             name,
-//             email,
-//             password,
-//             department,
-//             role,
-//             joinDate,
-//             phone,
-//             address,
-//             employeeId,
-//             shift,
-//             locationId, // sent to backend
-//           }),
-//         }
-//       );
-
-//       const data = await response.json();
-//       if (!response.ok) throw new Error(data.message || "Failed to add employee");
-
-//       // Step 2: Assign Location (only if locationId selected)
-//       if (locationId) {
-//         await axios.put(
-//           `http://localhost:5000/api/employees/assign-location/${employeeId}`,
-//           { locationId }
-//         );
-//       }
-
-//       setSuccessMessage("✅ Employee added successfully!");
-//       // Reset Form
-//       setName("");
-//       setEmail("");
-//       setPassword("");
-//       setDepartment("");
-//       setRole("");
-//       setJoinDate("");
-//       setPhone("");
-//       setAddress("");
-//       setEmployeeId("");
-//       setLocationId("");
-//       setShift("");
-
-//       // Redirect
-//       setTimeout(() => navigate("/employeelist"), 1000);
-//     } catch (error) {
-//       console.error("❌ Error adding employee:", error);
-//       setErrorMessage(`❌ ${error.message}`);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleOpenLocationModal = () => setShowLocationModal(true);
-//   const handleCloseLocationModal = () => setShowLocationModal(false);
-//   const handleSelectLocation = (locId) => {
-//     setLocationId(locId);
-//     handleCloseLocationModal();
-//   };
-
-//   return (
-//     <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-lg">
-//       <h2 className="mb-6 text-2xl font-semibold text-blue-900">
-//         Add New Employee
-//       </h2>
-
-//       {successMessage && (
-//         <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
-//           {successMessage}
-//         </div>
-//       )}
-//       {errorMessage && (
-//         <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
-//           {errorMessage}
-//         </div>
-//       )}
-
-//       <form onSubmit={handleSubmit}>
-//         {/* Name */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Full Name
-//           </label>
-//           <input
-//             type="text"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* Email */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Email
-//           </label>
-//           <input
-//             type="email"
-//             value={email}
-//             onChange={(e) => setEmail(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* Password */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Password
-//           </label>
-//           <input
-//             type="password"
-//             value={password}
-//             onChange={(e) => setPassword(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* Department */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Department
-//           </label>
-//           <select
-//             value={department}
-//             onChange={(e) => setDepartment(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           >
-//             <option value="">Select Department</option>
-//             {departments.map((dept) => (
-//               <option key={dept} value={dept}>
-//                 {dept}
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* Role */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">Role</label>
-//           <select
-//             value={role}
-//             onChange={(e) => setRole(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           >
-//             <option value="">Select Role</option>
-//             {roles.map((r) => (
-//               <option key={r} value={r}>
-//                 {r}
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* Join Date */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Join Date
-//           </label>
-//           <input
-//             type="date"
-//             value={joinDate}
-//             onChange={(e) => setJoinDate(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* Phone */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Phone
-//           </label>
-//           <input
-//             type="tel"
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//           />
-//         </div>
-
-//         {/* Address */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Address
-//           </label>
-//           <textarea
-//             value={address}
-//             onChange={(e) => setAddress(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//           ></textarea>
-//         </div>
-
-//         {/* Employee ID */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Employee ID
-//           </label>
-//           <input
-//             type="text"
-//             value={employeeId}
-//             onChange={(e) => setEmployeeId(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* ✅ Shift */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Shift Assignment
-//           </label>
-//           <select
-//             value={shift}
-//             onChange={(e) => setShift(e.target.value)}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded"
-//             required
-//           >
-//             <option value="">Select Shift</option>
-//             {Object.entries(shifts).map(([key, value]) => (
-//               <option key={key} value={value}>
-//                 {value}
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* ✅ Location Modal */}
-//         <div className="mb-4">
-//           <label className="block text-sm font-medium text-gray-700">
-//             Location
-//           </label>
-//           <div
-//             onClick={handleOpenLocationModal}
-//             className="w-full p-2 mt-1 border border-gray-300 rounded cursor-pointer hover:border-blue-400 bg-gray-50"
-//           >
-//             {locationId
-//               ? locations.find((loc) => loc._id === locationId)?.name ||
-//                 "Change Location"
-//               : "Select / Change Location"}
-//           </div>
-//         </div>
-
-//         {/* Submit Button */}
-//         <div className="flex justify-end">
-//           <button
-//             type="submit"
-//             disabled={loading}
-//             className="px-6 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
-//           >
-//             {loading ? "Saving..." : "Add Employee"}
-//           </button>
-//         </div>
-//       </form>
-
-//       {/* ✅ Location Modal */}
-//       {showLocationModal && (
-//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-3">
-//           <div className="relative w-full max-w-md bg-white rounded-lg shadow-lg p-6">
-//             <h3 className="text-lg font-semibold mb-4">Select Location</h3>
-//             <select
-//               value={locationId}
-//               onChange={(e) => handleSelectLocation(e.target.value)}
-//               className="w-full p-2 border border-gray-300 rounded"
-//             >
-//               <option value="">Select a Location</option>
-//               {locations.map((loc) => (
-//                 <option key={loc._id} value={loc._id}>
-//                   {loc.name}
-//                 </option>
-//               ))}
-//             </select>
-
-//             <div className="flex justify-end mt-4 gap-3">
-//               <button
-//                 onClick={handleCloseLocationModal}
-//                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-//               >
-//                 Cancel
-//               </button>
-//               <button
-//                 onClick={handleCloseLocationModal}
-//                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-//               >
-//                 Done
-//               </button>
-//             </div>
-
-//             <button
-//               onClick={handleCloseLocationModal}
-//               className="absolute top-2 right-3 text-gray-500 text-xl"
-//             >
-//               ✕
-//             </button>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default AddEmployeePage;
-
-// import axios from "axios";
-// import { useEffect, useState } from "react";
-// import { FaEye, FaEyeSlash } from "react-icons/fa";
-// import { useNavigate } from "react-router-dom";
-
-// const AddEmployeePage = () => {
-//   const navigate = useNavigate();
-
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [department, setDepartment] = useState("");
-//   const [role, setRole] = useState("");
-//   const [joinDate, setJoinDate] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [address, setAddress] = useState("");
-//   const [employeeId, setEmployeeId] = useState("");
-//   const [locationId, setLocationId] = useState("");
-
-//   // Salary Fields
-//   const [salaryPerMonth, setSalaryPerMonth] = useState("");
-//   const [shiftHours, setShiftHours] = useState("");
-//   const [weekOffPerMonth, setWeekOffPerMonth] = useState(""); // NEW FIELD
-
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [locations, setLocations] = useState([]);
-
-//   const [loading, setLoading] = useState(false);
-//   const [successMessage, setSuccessMessage] = useState("");
-//   const [errorMessage, setErrorMessage] = useState("");
-
-//   // Departments
-//   const departments = [
-//     "Developer", "Sales", "Marketing", "Medical", "Finance",
-//     "Nursing", "Digital Marketing", "Management", "Laboratory Medicine"
-//   ];
-
-//   // Roles
-//   const roles = [
-//     "Administrator", "Manager", "Team Lead", "Employee", "HR Manager",
-//     "Phlebotomist", "Staff Nurse", "Sales Executive",
-//     "Consultant", "Graphic Designer", "UI/UX & GRAPHIC DESIGNER",
-//     "SMM & SEO Executive", "Web Developer",
-//   ];
-
-//   // Fetch Locations
-//   useEffect(() => {
-//     const fetchLocations = async () => {
-//       try {
-//         const res = await axios.get(
-//           "http://localhost:5000/api/location/alllocation"
-//         );
-//         if (res.data?.locations) setLocations(res.data.locations);
-//       } catch (err) {
-//         console.error("❌ Error fetching locations:", err);
-//       }
-//     };
-//     fetchLocations();
-//   }, []);
-
-//   // Submit Employee
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setErrorMessage("");
-//     setSuccessMessage("");
-//     setLoading(true);
-
-//     try {
-//       // Step 1: Add Employee
-//       await axios.post(
-//         "https://localhost:5000/api/employees/add-employee",
-//         {
-//           name,
-//           email,
-//           password,
-//           department,
-//           role,
-//           joinDate,
-//           phone,
-//           address,
-//           employeeId,
-//           locationId,
-//         }
-//       );
-
-//       // Step 2: Assign Location
-//       if (locationId) {
-//         await axios.put(
-//           `http://localhost:5000/api/employees/assign-location/${employeeId}`,
-//           { locationId }
-//         );
-//       }
-
-//       // Step 3: Add Salary (WeekOff Included)
-//       await axios.post(
-//         "http://localhost:5000/api/salary/set-salary",
-//         {
-//           employeeId,
-//           name,
-//           salaryPerMonth: Number(salaryPerMonth),
-//           shiftHours: Number(shiftHours),
-//           weekOffPerMonth: Number(weekOffPerMonth), // NEW FIELD
-//         }
-//       );
-
-//       setSuccessMessage("✅ Employee & Salary added successfully!");
-
-//       // Reset all fields
-//       setName("");
-//       setEmail("");
-//       setPassword("");
-//       setDepartment("");
-//       setRole("");
-//       setJoinDate("");
-//       setPhone("");
-//       setAddress("");
-//       setEmployeeId("");
-//       setLocationId("");
-
-//       setSalaryPerMonth("");
-//       setShiftHours("");
-//       setWeekOffPerMonth(""); // RESET NEW FIELD
-
-//       setTimeout(() => navigate("/employeelist"), 800);
-//     } catch (err) {
-//       console.error("❌ Error:", err);
-//       setErrorMessage(err.response?.data?.message || "Something went wrong!");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-lg">
-//       <h2 className="mb-6 text-2xl font-bold text-blue-900">Add New Employee Data</h2>
-
-//       {successMessage && (
-//         <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
-//           {successMessage}
-//         </div>
-//       )}
-//       {errorMessage && (
-//         <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
-//           {errorMessage}
-//         </div>
-//       )}
-
-//       <form onSubmit={handleSubmit}>
-
-//         {/* NAME */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Full Name</label>
-//           <input
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* EMAIL */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Email</label>
-//           <input
-//             type="email"
-//             value={email}
-//             onChange={(e) => setEmail(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* PASSWORD */}
-//         <div className="mb-4 relative">
-//           <label className="block text-sm">Password</label>
-//           <input
-//             type={showPassword ? "text" : "password"}
-//             value={password}
-//             onChange={(e) => setPassword(e.target.value)}
-//             className="w-full p-2 border rounded pr-10"
-//             required
-//           />
-//           <button
-//             type="button"
-//             onClick={() => setShowPassword(!showPassword)}
-//             className="absolute right-3 top-9 text-gray-600"
-//           >
-//             {showPassword ? <FaEyeSlash /> : <FaEye />}
-//           </button>
-//         </div>
-
-//         {/* DEPARTMENT */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Department</label>
-//           <select
-//             value={department}
-//             onChange={(e) => setDepartment(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           >
-//             <option value="">Select Department</option>
-//             {departments.map((d) => (
-//               <option key={d}>{d}</option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* ROLE */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Role</label>
-//           <select
-//             value={role}
-//             onChange={(e) => setRole(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           >
-//             <option value="">Select Role</option>
-//             {roles.map((r) => (
-//               <option key={r}>{r}</option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* JOIN DATE */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Join Date</label>
-//           <input
-//             type="date"
-//             value={joinDate}
-//             onChange={(e) => setJoinDate(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-
-
-
-//         {/* PHONE */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Phone</label>
-//           <input
-//             value={phone}
-//             onChange={(e) => setPhone(e.target.value)}
-//             className="w-full p-2 border rounded"
-//           />
-//         </div>
-
-//         {/* ADDRESS */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Address</label>
-//           <textarea
-//             value={address}
-//             onChange={(e) => setAddress(e.target.value)}
-//             className="w-full p-2 border rounded"
-//           />
-//         </div>
-
-//         {/* EMPLOYEE ID */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Employee ID</label>
-//           <input
-//             value={employeeId}
-//             onChange={(e) => setEmployeeId(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* SALARY PER MONTH */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Salary Per Month</label>
-//           <input
-//             type="number"
-//             value={salaryPerMonth}
-//             onChange={(e) => setSalaryPerMonth(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* SHIFT HOURS */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Shift Hours Per Day</label>
-//           <input
-//             type="number"
-//             value={shiftHours}
-//             onChange={(e) => setShiftHours(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* WEEK OFF PER MONTH */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Week Off Per Month</label>
-//           <input
-//             type="number"
-//             value={weekOffPerMonth}
-//             onChange={(e) => setWeekOffPerMonth(e.target.value)}
-//             className="w-full p-2 border rounded"
-//             required
-//           />
-//         </div>
-
-//         {/* LOCATION */}
-//         <div className="mb-4">
-//           <label className="block text-sm">Location</label>
-//           <select
-//             value={locationId}
-//             onChange={(e) => setLocationId(e.target.value)}
-//             className="w-full p-2 border rounded"
-//           >
-//             <option value="">Select a Location</option>
-//             {locations.map((loc) => (
-//               <option key={loc._id} value={loc._id}>{loc.name}</option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* SUBMIT */}
-//         <button
-//           type="submit"
-//           disabled={loading}
-//           className="px-6 py-2 bg-blue-600 text-white rounded"
-//         >
-//           {loading ? "Saving..." : "AddEmployee"}
-//         </button>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default AddEmployeePage;
-
-
-// import axios from "axios";
-// import { useEffect, useState } from "react";
-// import { FaEye, FaEyeSlash } from "react-icons/fa";
-// import { useLocation, useNavigate } from "react-router-dom";
-
-// const AddEmployeePage = () => {
-//   const navigate = useNavigate();
-//   const location = useLocation();
-
-//   // ✅ edit se aaya hai ya nahi
-//   const editingEmployee = location.state?.employee || null;
-
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [department, setDepartment] = useState("");
-//   const [role, setRole] = useState("");
-//   const [joinDate, setJoinDate] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [address, setAddress] = useState("");
-//   const [employeeId, setEmployeeId] = useState("");
-//   const [locationId, setLocationId] = useState("");
-
-//   // Salary
-//   const [salaryPerMonth, setSalaryPerMonth] = useState("");
-//   const [shiftHours, setShiftHours] = useState("");
-//   const [weekOffPerMonth, setWeekOffPerMonth] = useState("");
-
-//   const [isAddingNewDept, setIsAddingNewDept] = useState(false);
-//   const [customDepartment, setCustomDepartment] = useState("");
-//   const [isAddingNewRole, setIsAddingNewRole] = useState(false);
-//   const [customRole, setCustomRole] = useState("");
-
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [locations, setLocations] = useState([]);
-
-//   const [loading, setLoading] = useState(false);
-//   const [successMessage, setSuccessMessage] = useState("");
-//   const [errorMessage, setErrorMessage] = useState("");
-
-//   const departments = [
-//     "Developer", "Sales", "Marketing", "Medical", "Finance",
-//     "Nursing", "Digital Marketing", "Management", "Laboratory Medicine"
-//   ];
-
-//   const roles = [
-//     "Administrator", "Manager", "Team Lead", "Employee", "HR Manager",
-//     "Phlebotomist", "Staff Nurse", "Sales Executive",
-//     "Consultant", "Graphic Designer", "UI/UX & GRAPHIC DESIGNER",
-//     "SMM & SEO Executive", "Web Developer",
-//   ];
-
-//   // ✅ EDIT MODE AUTO-FILL (NO STRUCTURE CHANGE)
-//   useEffect(() => {
-//     if (editingEmployee) {
-//       setName(editingEmployee.name || "");
-//       setEmail(editingEmployee.email || "");
-//       setDepartment(editingEmployee.department || "");
-//       setRole(editingEmployee.role || "");
-//       setJoinDate(editingEmployee.joinDate?.slice(0, 10) || "");
-//       setPhone(editingEmployee.phone || "");
-//       setAddress(editingEmployee.address || "");
-//       setEmployeeId(editingEmployee.employeeId || "");
-
-//       setLocationId(
-//         editingEmployee.location?._id ||
-//         editingEmployee.location ||
-//         ""
-//       );
-
-//       setSalaryPerMonth(editingEmployee.salaryPerMonth || "");
-//       setShiftHours(editingEmployee.shiftHours || "");
-//       setWeekOffPerMonth(editingEmployee.weekOffPerMonth || "");
-
-//       // edit mode me password blank
-//       setPassword("");
-//     }
-//   }, [editingEmployee]);
-
-//   // Fetch locations
-//   useEffect(() => {
-//     const fetchLocations = async () => {
-//       try {
-//         const res = await axios.get(
-//           "http://localhost:5000/api/location/alllocation"
-//         );
-//         if (res.data?.locations) setLocations(res.data.locations);
-//       } catch (err) {
-//         console.error(err);
-//       }
-//     };
-//     fetchLocations();
-//   }, []);
-
-//   // ✅ ADD / UPDATE SAME FORM (LOGIC FIXED)
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setLoading(true);
-//     setErrorMessage("");
-//     setSuccessMessage("");
-
-//     try {
-//       const finalDept = isAddingNewDept ? customDepartment : department;
-//       const finalRole = isAddingNewRole ? customRole : role;
-
-//       if (editingEmployee) {
-//         // ================= UPDATE EMPLOYEE =================
-//         const profilePayload = {
-//           name,
-//           email,
-//           department: finalDept,
-//           role: finalRole,
-//           joinDate,
-//           phone,
-//           address,
-//           locationId, // Send as locationId
-//           location: locationId, // Also send as location for compatibility
-//         };
-
-//         // password optional during edit
-//         if (password) profilePayload.password = password;
-
-//         await axios.put(
-//           `http://localhost:5000/api/employees/update/${editingEmployee._id}`,
-//           profilePayload
-//         );
-
-//         // ================= UPDATE SALARY (ONLY IF VALUES PROVIDED) =================
-//         if (salaryPerMonth || shiftHours || weekOffPerMonth) {
-//           try {
-//             await axios.put(
-//               `http://localhost:5000/api/salary/update-salary/${editingEmployee.employeeId}`,
-//               {
-//                 employeeId: editingEmployee.employeeId,
-//                 salaryPerMonth: Number(salaryPerMonth) || 0,
-//                 shiftHours: Number(shiftHours) || 8,
-//                 weekOffPerMonth: Number(weekOffPerMonth) || 0,
-//               }
-//             );
-//           } catch (salErr) {
-//             console.warn("⚠️ Salary update failed, but profile updated:", salErr.message);
-//           }
-//         }
-
-//         setSuccessMessage("✅ Employee details updated successfully!");
-//       } else {
-//         // ================= ADD EMPLOYEE =================
-//         await axios.post(
-//           "http://localhost:5000/api/employees/add-employee",
-//           {
-//             name,
-//             email,
-//             password,
-//             department: finalDept,
-//             role: finalRole,
-//             joinDate,
-//             phone,
-//             address,
-//             employeeId,
-//             locationId,
-//           }
-//         );
-
-//         // ================= ADD SALARY =================
-//         await axios.post(
-//           "http://localhost:5000/api/salary/set-salary",
-//           {
-//             employeeId,
-//             name,
-//             salaryPerMonth: Number(salaryPerMonth),
-//             shiftHours: Number(shiftHours),
-//             weekOffPerMonth: Number(weekOffPerMonth),
-//           }
-//         );
-
-//         setSuccessMessage("✅ Employee added successfully!");
-//       }
-
-//       setTimeout(() => navigate("/employeelist"), 800);
-//     } catch (err) {
-//       setErrorMessage(err.response?.data?.message || "Something went wrong!");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-lg">
-//       <h2 className="mb-6 text-2xl font-bold text-blue-900">
-//         Add New Employee Data
-//       </h2>
-
-//       {successMessage && (
-//         <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
-//           {successMessage}
-//         </div>
-//       )}
-//       {errorMessage && (
-//         <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
-//           {errorMessage}
-//         </div>
-//       )}
-
-//       {/* ❌ FORM STRUCTURE SAME */}
-//       <form onSubmit={handleSubmit}>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Full Name</label>
-//           <input value={name} onChange={(e) => setName(e.target.value)} className="w-full p-2 border rounded" required />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Email</label>
-//           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-2 border rounded" required />
-//         </div>
-
-//         <div className="mb-4 relative">
-//           <label className="block text-sm">Password</label>
-//           <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-2 border rounded pr-10" />
-//           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9">
-//             {showPassword ? <FaEyeSlash /> : <FaEye />}
-//           </button>
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Department</label>
-//           <div className="flex gap-2">
-//             <select
-//               value={isAddingNewDept ? "ADD_NEW" : department}
-//               onChange={(e) => {
-//                 if (e.target.value === "ADD_NEW") {
-//                   setIsAddingNewDept(true);
-//                   setDepartment("");
-//                 } else {
-//                   setIsAddingNewDept(false);
-//                   setDepartment(e.target.value);
-//                 }
-//               }}
-//               className="w-full p-2 border rounded"
-//               required={!isAddingNewDept}
-//             >
-//               <option value="">Select Department</option>
-//               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-//               <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Department</option>
-//             </select>
-//           </div>
-//           {isAddingNewDept && (
-//             <div className="flex items-center gap-2 mt-2">
-//               <input
-//                 type="text"
-//                 placeholder="Enter new department name"
-//                 value={customDepartment}
-//                 onChange={(e) => setCustomDepartment(e.target.value)}
-//                 className="flex-1 p-2 border border-blue-300 rounded focus:ring-1 focus:ring-blue-400 outline-none"
-//                 required
-//               />
-//               <button
-//                 type="button"
-//                 onClick={() => setIsAddingNewDept(false)}
-//                 className="text-xs text-red-500 hover:text-red-700 font-medium"
-//               >
-//                 Cancel
-//               </button>
-//             </div>
-//           )}
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Role</label>
-//           <div className="flex gap-2">
-//             <select
-//               value={isAddingNewRole ? "ADD_NEW" : role}
-//               onChange={(e) => {
-//                 if (e.target.value === "ADD_NEW") {
-//                   setIsAddingNewRole(true);
-//                   setRole("");
-//                 } else {
-//                   setIsAddingNewRole(false);
-//                   setRole(e.target.value);
-//                 }
-//               }}
-//               className="w-full p-2 border rounded"
-//               required={!isAddingNewRole}
-//             >
-//               <option value="">Select Role</option>
-//               {roles.map((r) => <option key={r} value={r}>{r}</option>)}
-//               <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Role</option>
-//             </select>
-//           </div>
-//           {isAddingNewRole && (
-//             <div className="flex items-center gap-2 mt-2">
-//               <input
-//                 type="text"
-//                 placeholder="Enter new role name"
-//                 value={customRole}
-//                 onChange={(e) => setCustomRole(e.target.value)}
-//                 className="flex-1 p-2 border border-blue-300 rounded focus:ring-1 focus:ring-blue-400 outline-none"
-//                 required
-//               />
-//               <button
-//                 type="button"
-//                 onClick={() => setIsAddingNewRole(false)}
-//                 className="text-xs text-red-500 hover:text-red-700 font-medium"
-//               >
-//                 Cancel
-//               </button>
-//             </div>
-//           )}
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Join Date</label>
-//           <input type="date" value={joinDate} onChange={(e) => setJoinDate(e.target.value)} className="w-full p-2 border rounded" required />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Phone</label>
-//           <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full p-2 border rounded" />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Address</label>
-//           <textarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full p-2 border rounded" />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Employee ID</label>
-//           <input
-//             value={employeeId}
-//             onChange={(e) => setEmployeeId(e.target.value)}
-//             className={`w-full p-2 border rounded ${editingEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-//             required
-//             readOnly={!!editingEmployee}
-//           />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Salary Per Month</label>
-//           <input type="number" value={salaryPerMonth} onChange={(e) => setSalaryPerMonth(e.target.value)} className="w-full p-2 border rounded" required />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Shift Hours Per Day</label>
-//           <input type="number" value={shiftHours} onChange={(e) => setShiftHours(e.target.value)} className="w-full p-2 border rounded" required />
-//         </div>
-
-//         <div className="mb-4">
-//           <label className="block text-sm">Week Off Per Month</label>
-//           <input type="number" value={weekOffPerMonth} onChange={(e) => setWeekOffPerMonth(e.target.value)} className="w-full p-2 border rounded" required />
-//         </div>
-
-//         {/* <div className="mb-4">
-//           <label className="block text-sm">Location</label> <button>Add New Location</button>
-//           <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className="w-full p-2 border rounded">
-//             <option value="">Select a Location</option>
-//             {locations.map((loc) => (
-//               <option key={loc._id} value={loc._id}>{loc.name}</option>
-//             ))}
-//           </select>
-//         </div> */}
-
-//         <div className="mb-4">
-//   {/* Label + Button */}
-//   <div className="flex items-center justify-between mb-1">
-//     <label className="text-sm font-medium text-gray-700">
-//       Location
-//     </label>
-
-//     <button onClick={()=>navigate("/addlocation")}
-//       type="button"
-//       className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
-//     >
-//       + Add Location
-//     </button>
-//   </div>
-
-//   {/* Select */}
-//   <select
-//     value={locationId}
-//     onChange={(e) => setLocationId(e.target.value)}
-//     className="w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//   >
-//     <option value="">Select a Location</option>
-//     {locations.map((loc) => (
-//       <option key={loc._id} value={loc._id}>
-//         {loc.name}
-//       </option>
-//     ))}
-//   </select>
-// </div>
-
-
-//         <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded">
-//           {loading ? "Saving..." : editingEmployee ? "Update Employee" : "Add Employee"}
-//         </button>
-
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default AddEmployeePage;
-
 import axios from "axios";
-import { useEffect, useState } from "react";
-import { FaEye, FaEyeSlash, FaSpinner } from "react-icons/fa";
+import { useEffect, useRef, useState } from "react";
+import {
+  FaBriefcase, FaBuilding, FaCalendar, FaCheck,
+  FaCity, FaClock, FaDollarSign, FaEnvelope,
+  FaEye, FaEyeSlash, FaGlobeAsia,
+  FaLock, FaMapMarkerAlt, FaMapPin, FaPhone,
+  FaSpinner,
+  FaUser,
+  FaUserTie
+} from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../Components/config";
 
-const API_BASE_URL = "http://localhost:5000/api";
+// ✅ Pin Code Utility Functions
+const PINCODE_DATA = {
+  "110001": { city: "New Delhi", state: "Delhi" },
+  "400001": { city: "Mumbai", state: "Maharashtra" },
+  "700001": { city: "Kolkata", state: "West Bengal" },
+  "600001": { city: "Chennai", state: "Tamil Nadu" },
+  "560001": { city: "Bengaluru", state: "Karnataka" },
+  "380001": { city: "Ahmedabad", state: "Gujarat" },
+  "302001": { city: "Jaipur", state: "Rajasthan" },
+  "411001": { city: "Pune", state: "Maharashtra" },
+  "800001": { city: "Patna", state: "Bihar" },
+  "500001": { city: "Hyderabad", state: "Telangana" },
+  "847301": { city: "Samastipur", state: "Bihar" },
+};
+
+const getCityStateFromPincode = async (pincode) => {
+  try {
+    if (PINCODE_DATA[pincode]) {
+      return PINCODE_DATA[pincode];
+    }
+    
+    try {
+      const response = await axios.get(`https://api.postalpincode.in/pincode/${pincode}`);
+      if (response.data && response.data[0] && response.data[0].Status === "Success") {
+        const postOffice = response.data[0].PostOffice[0];
+        return {
+          city: postOffice.District || postOffice.Name,
+          state: postOffice.State,
+          country: "India"
+        };
+      }
+    } catch (apiError) {
+      console.warn("External API failed, using local data");
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error fetching pincode data:", error);
+    return null;
+  }
+};
+
+const formatFullAddress = (addressData) => {
+  const { addressLine1, addressLine2, city, state, pinCode, country } = addressData;
+  let address = addressLine1 || '';
+  if (addressLine2) address += `, ${addressLine2}`;
+  if (city) address += `, ${city}`;
+  if (state) address += `, ${state}`;
+  if (pinCode) address += ` - ${pinCode}`;
+  if (country) address += `, ${country}`;
+  return address;
+};
 
 const AddEmployeePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editingEmployee = location.state?.employee || null;
+  const searchTimeoutRef = useRef(null);
 
-  // Get clientId from localStorage (MongoDB _id)
-  const clientId = localStorage.getItem('clientId') || '';
+  // Get clientId from localStorage
+  const clientId = localStorage.getItem('clientId') || localStorage.getItem('clientCustomId') || '';
 
-  // PERSONAL INFO
+  // ✅ PERSONAL INFO
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -1446,89 +86,191 @@ const AddEmployeePage = () => {
   const [parentsName, setParentsName] = useState("");
   const [alternateNumber, setAlternateNumber] = useState("");
 
-  // DEPARTMENT & ROLE
+  // ✅ DEPARTMENT & ROLE
   const [department, setDepartment] = useState("");
   const [role, setRole] = useState("");
-
-  // ADDRESS (Simplified)
-  const [address, setAddress] = useState("");
-
-  // LOCATION
-  const [locationId, setLocationId] = useState("");
-  const [locations, setLocations] = useState([]);
-
-  // WEEK OFF
-  const [weekOffPerMonth, setWeekOffPerMonth] = useState("0");
-
-  // SHIFT
-  const [shiftType, setShiftType] = useState("");
-  const [shiftStartTime, setShiftStartTime] = useState("09:00");
-  const [shiftEndTime, setShiftEndTime] = useState("18:00");
-  const [shiftHours, setShiftHours] = useState("8");
-  const [isAddingNewShift, setIsAddingNewShift] = useState(false);
-  const [customShiftType, setCustomShiftType] = useState("");
-  const [customShiftStartTime, setCustomShiftStartTime] = useState("09:00");
-  const [customShiftEndTime, setCustomShiftEndTime] = useState("18:00");
-
-  // SALARY
-  const [salaryPerMonth, setSalaryPerMonth] = useState("");
-
-  // UI States
+  
+  // Custom field states
   const [isAddingNewDept, setIsAddingNewDept] = useState(false);
   const [customDepartment, setCustomDepartment] = useState("");
   const [isAddingNewRole, setIsAddingNewRole] = useState(false);
   const [customRole, setCustomRole] = useState("");
+  const [isAddingNewShift, setIsAddingNewShift] = useState(false);
+  const [customShiftType, setCustomShiftType] = useState("");
+  const [customShiftStartTime, setCustomShiftStartTime] = useState("09:00");
+  const [customShiftEndTime, setCustomShiftEndTime] = useState("18:00");
+  const [customShiftName, setCustomShiftName] = useState("");
 
+  // ✅ ADDRESS
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [pinCode, setPinCode] = useState("");
+  const [country, setCountry] = useState("India");
+
+  // ✅ LOCATION
+  const [locationId, setLocationId] = useState("");
+
+  // ✅ WEEK OFF
+  const [weekOffPerMonth, setWeekOffPerMonth] = useState("0");
+
+  // ✅ SHIFT
+  const [shiftType, setShiftType] = useState("");
+  const [shiftStartTime, setShiftStartTime] = useState("09:00");
+  const [shiftEndTime, setShiftEndTime] = useState("18:00");
+  const [shiftHours, setShiftHours] = useState("8");
+  const [showShiftDetails, setShowShiftDetails] = useState(false);
+
+  // ✅ SALARY
+  const [salaryPerMonth, setSalaryPerMonth] = useState("");
+
+  // ✅ EXISTING STATES
+  const [departments, setDepartments] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [shiftList, setShiftList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Modal states
+  const [showShiftModal, setShowShiftModal] = useState(false);
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  
+  // Employee found status
   const [employeeFound, setEmployeeFound] = useState(false);
   const [searchedPhone, setSearchedPhone] = useState("");
+  
+  // Shift Creation Form
+  const [createShiftForm, setCreateShiftForm] = useState({
+    shiftType: '',
+    shiftName: '',
+    timeRange: '',
+    description: ''
+  });
+  
+  const [deptForm, setDeptForm] = useState({ name: '', description: '' });
+  const [roleForm, setRoleForm] = useState({ name: '', description: '' });
+  const [locationForm, setLocationForm] = useState({
+    name: '',
+    latitude: '',
+    longitude: '',
+    fullAddress: ''
+  });
 
-  // Predefined lists
-  const departments = [
-    "Developer", "Sales", "Marketing", "Medical", "Finance",
-    "Nursing", "Digital Marketing", "Management", "Laboratory Medicine",
-    "HR", "Operations", "Admin"
-  ];
-
-  const roles = [
-    "Administrator", "Manager", "Team Lead", "Employee", "HR Manager",
-    "Phlebotomist", "Staff Nurse", "Sales Executive",
-    "Consultant", "Graphic Designer", "UI/UX Designer",
-    "SMM Executive", "SEO Executive", "Web Developer",
-  ];
-
-  const shiftList = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
-
-  // Load employee data if editing
-  useEffect(() => {
-    if (editingEmployee) {
-      loadEmployeeData(editingEmployee);
+  // Fetch functions with clientId
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/department/all/${clientId}`);
+      if (response.data.success) {
+        setDepartments(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      setDepartments([]);
     }
-  }, [editingEmployee]);
+  };
 
-  // Fetch locations by clientId
-  useEffect(() => {
-    if (clientId) {
-      fetchLocationsByClient();
+  const fetchRoles = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/roles/all/${clientId}`);
+      if (response.data.success) {
+        setRoles(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      setRoles([]);
     }
-  }, [clientId]);
+  };
 
   const fetchLocationsByClient = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/location/alllocation/${clientId}`);
       if (response.data?.locations) {
         setLocations(response.data.locations);
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        setLocations(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching locations:", error);
-      setErrorMessage("Failed to load locations");
+      setLocations([]);
     }
   };
 
+  const fetchAllShifts = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/shifts/master/${clientId}`);
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        const shifts = res.data.data;
+        const shiftOptions = shifts.map(shift => ({
+          type: shift.shiftType,
+          name: shift.shiftName || `Shift ${shift.shiftType}`,
+          timeSlots: shift.timeSlots || []
+        }));
+        setShiftList(shiftOptions);
+      }
+    } catch (err) {
+      console.log("Error fetching shifts:", err.message);
+      setShiftList([]);
+    }
+  };
+
+  const fetchEmployeeShift = async (empId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/shifts/employee/${empId}/${clientId}`);
+      if (response.data && !response.data.message) {
+        setShiftType(response.data.shiftType);
+        setShiftStartTime(response.data.startTime || "09:00");
+        setShiftEndTime(response.data.endTime || "18:00");
+      }
+    } catch (err) {
+      console.log("No shift assigned yet");
+    }
+  };
+
+  useEffect(() => {
+    if (clientId) {
+      fetchDepartments();
+      fetchRoles();
+      fetchAllShifts();
+      fetchLocationsByClient();
+    } else {
+      console.error("Client ID not found. Please login again.");
+      setErrorMessage("Client ID not found. Please login again.");
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    if (editingEmployee) {
+      loadEmployeeData(editingEmployee);
+    }
+  }, [editingEmployee, shiftList]);
+
+  // Auto-search when phone number is entered
+  useEffect(() => {
+    if (!editingEmployee && phone.length === 10 && phone !== searchedPhone) {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      searchTimeoutRef.current = setTimeout(() => {
+        searchEmployeeByPhone();
+      }, 500);
+    }
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [phone, editingEmployee]);
+
+  // Load employee data
   const loadEmployeeData = (employee) => {
     const nameParts = employee.name ? employee.name.trim().split(' ') : ['', ''];
     setFirstName(nameParts[0] || "");
@@ -1541,7 +283,12 @@ const AddEmployeePage = () => {
     setJoinDate(employee.joinDate ? new Date(employee.joinDate).toISOString().split('T')[0] : "");
     setDepartment(employee.department || "");
     setRole(employee.role || "");
-    setAddress(employee.address || "");
+    setAddressLine1(employee.addressLine1 || "");
+    setAddressLine2(employee.addressLine2 || "");
+    setCity(employee.city || "");
+    setState(employee.state || "");
+    setPinCode(employee.pinCode || "");
+    setCountry(employee.country || "India");
     setLocationId(employee.location?._id || employee.location || "");
     setWeekOffPerMonth(employee.weekOffPerMonth?.toString() || "0");
     setParentsName(employee.parentsName || "");
@@ -1551,26 +298,17 @@ const AddEmployeePage = () => {
     setSalaryPerMonth(employee.salaryPerMonth?.toString() || "");
     setPassword("");
 
+    if (employee.shiftType) {
+      setShowShiftDetails(true);
+    }
+
     // Fetch employee's shift if editing
     if (employee.employeeId) {
       fetchEmployeeShift(employee.employeeId);
     }
   };
 
-  const fetchEmployeeShift = async (empId) => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/shifts/employee/${empId}`);
-      if (response.data && !response.data.message) {
-        setShiftType(response.data.shiftType);
-        setShiftStartTime(response.data.startTime || "09:00");
-        setShiftEndTime(response.data.endTime || "18:00");
-      }
-    } catch (err) {
-      console.log("No shift assigned yet");
-    }
-  };
-
-  // Search employee by phone
+  // Search employee by phone number
   const searchEmployeeByPhone = async () => {
     if (!phone || phone.length !== 10 || phone === searchedPhone || editingEmployee) {
       return;
@@ -1584,30 +322,33 @@ const AddEmployeePage = () => {
 
     try {
       const response = await axios.get(`${API_BASE_URL}/employees/get-employee-by-phone`, {
-        params: { phone }
+        params: { phone, clientId }
       });
 
       if (response.data.success) {
         const employee = response.data.data;
         loadEmployeeData(employee);
         setEmployeeFound(true);
-        setSuccessMessage(`Employee "${employee.name}" found!`);
+        setSuccessMessage(`Employee "${employee.name}" found! Data loaded successfully.`);
       } else {
         resetFormForNewEntry();
         setEmployeeFound(false);
       }
     } catch (error) {
+      console.error("Search error:", error);
       if (error.response?.status === 404) {
         resetFormForNewEntry();
         setEmployeeFound(false);
       } else {
-        setErrorMessage("Failed to search employee");
+        setErrorMessage("Failed to search employee. Please try again.");
+        setEmployeeFound(false);
       }
     } finally {
       setSearching(false);
     }
   };
 
+  // Reset form for new entry
   const resetFormForNewEntry = () => {
     if (!editingEmployee) {
       setFirstName("");
@@ -1619,7 +360,12 @@ const AddEmployeePage = () => {
       setJoinDate("");
       setDepartment("");
       setRole("");
-      setAddress("");
+      setAddressLine1("");
+      setAddressLine2("");
+      setCity("");
+      setState("");
+      setPinCode("");
+      setCountry("India");
       setLocationId("");
       setWeekOffPerMonth("0");
       setParentsName("");
@@ -1627,33 +373,71 @@ const AddEmployeePage = () => {
       setShiftType("");
       setShiftHours("8");
       setSalaryPerMonth("");
+      setIsAddingNewDept(false);
+      setIsAddingNewRole(false);
+      setIsAddingNewShift(false);
+      setCustomDepartment("");
+      setCustomRole("");
+      setCustomShiftType("");
+      setCustomShiftName("");
     }
   };
 
+  // Generate new employee ID
   const generateEmployeeId = () => {
     const randomNum = Math.floor(Math.random() * 900) + 100;
     return `EMP${randomNum}`;
   };
 
-  const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setPhone(value);
+  const handlePinCodeChange = async (e) => {
+    const value = e.target.value;
+    setPinCode(value);
     
-    if (value.length < 10) {
-      setSearchedPhone("");
-      setEmployeeFound(false);
+    if (value.length === 6) {
+      try {
+        const locationData = await getCityStateFromPincode(value);
+        if (locationData) {
+          setCity(locationData.city || "");
+          setState(locationData.state || "");
+          setCountry(locationData.country || "India");
+        } else {
+          setErrorMessage("Invalid pin code or not found. Please enter manually.");
+        }
+      } catch (error) {
+        console.error("Error fetching pin code data:", error);
+      }
+    } else if (value.length > 6) {
+      setPinCode(value.slice(0, 6));
     }
   };
 
-  // Auto-search when phone entered
-  useEffect(() => {
-    if (!editingEmployee && phone.length === 10 && phone !== searchedPhone) {
-      const timeout = setTimeout(() => {
-        searchEmployeeByPhone();
-      }, 500);
-      return () => clearTimeout(timeout);
+  const handleShiftChange = (selectedShift) => {
+    if (selectedShift === "ADD_NEW") {
+      setIsAddingNewShift(true);
+      setShowShiftModal(true);
+    } else {
+      setIsAddingNewShift(false);
+      setShiftType(selectedShift);
+      setShowShiftDetails(true);
+      
+      if (selectedShift) {
+        const selectedShiftData = shiftList.find(shift => shift.type === selectedShift);
+        if (selectedShiftData && selectedShiftData.timeSlots && selectedShiftData.timeSlots.length > 0) {
+          const firstSlot = selectedShiftData.timeSlots[0];
+          const timeRange = firstSlot.timeRange;
+          const times = timeRange.split('-').map(t => t.trim());
+          if (times.length === 2) {
+            setShiftStartTime(times[0]);
+            setShiftEndTime(times[1]);
+          }
+        }
+      }
     }
-  }, [phone, editingEmployee]);
+  };
+
+  const getCurrentDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
 
   const assignShiftToEmployee = async (empId, empName, shift, startTime, endTime) => {
     try {
@@ -1662,12 +446,13 @@ const AddEmployeePage = () => {
         employeeName: empName,
         shiftType: shift.toUpperCase(),
         startTime: startTime,
-        endTime: endTime
+        endTime: endTime,
+        clientId: clientId
       };
       const response = await axios.post(`${API_BASE_URL}/shifts/assign`, shiftData);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Shift assignment error:", error);
+      console.error("Shift assignment error:", error.response?.data || error.message);
       return { success: false, message: error.response?.data?.message || error.message };
     }
   };
@@ -1688,16 +473,87 @@ const AddEmployeePage = () => {
         throw new Error("Please enter a valid 10-digit phone number");
       }
 
+      if (dob) {
+        const dobDate = new Date(dob);
+        const today = new Date();
+        if (dobDate > today) {
+          throw new Error("Date of Birth cannot be in the future");
+        }
+      }
+
+      if (pinCode && pinCode.length !== 6) {
+        throw new Error("Pin code must be 6 digits");
+      }
+
       if (!employeeId) {
         setEmployeeId(generateEmployeeId());
       }
 
       // Handle custom fields
-      const finalDept = isAddingNewDept ? customDepartment : department;
-      const finalRole = isAddingNewRole ? customRole : role;
-      let finalShift = isAddingNewShift ? customShiftType : shiftType;
-      let finalStartTime = isAddingNewShift ? customShiftStartTime : shiftStartTime;
-      let finalEndTime = isAddingNewShift ? customShiftEndTime : shiftEndTime;
+      let finalDept = department;
+      if (isAddingNewDept && customDepartment) {
+        // Create new department first
+        try {
+          const deptResponse = await axios.post(`${API_BASE_URL}/department/create/${clientId}`, {
+            name: customDepartment,
+            description: `Auto-created department ${customDepartment}`
+          });
+          if (deptResponse.data.success) {
+            finalDept = customDepartment;
+            await fetchDepartments(); // Refresh departments list
+          } else {
+            throw new Error("Failed to create department");
+          }
+        } catch (deptError) {
+          throw new Error(`Failed to create department: ${deptError.message}`);
+        }
+      }
+
+      let finalRole = role;
+      if (isAddingNewRole && customRole) {
+        try {
+          const roleResponse = await axios.post(`${API_BASE_URL}/roles/create/${clientId}`, {
+            name: customRole,
+            description: `Auto-created role ${customRole}`
+          });
+          if (roleResponse.data.success) {
+            finalRole = customRole;
+            await fetchRoles(); // Refresh roles list
+          } else {
+            throw new Error("Failed to create role");
+          }
+        } catch (roleError) {
+          throw new Error(`Failed to create role: ${roleError.message}`);
+        }
+      }
+
+      let finalShift = shiftType;
+      let finalStartTime = shiftStartTime;
+      let finalEndTime = shiftEndTime;
+      
+      if (isAddingNewShift && customShiftType) {
+        finalShift = customShiftType;
+        finalStartTime = customShiftStartTime;
+        finalEndTime = customShiftEndTime;
+        
+        // Create new shift master entry
+        try {
+          const shiftResponse = await axios.post(`${API_BASE_URL}/shifts/create/${clientId}`, {
+            shiftType: customShiftType.toUpperCase(),
+            shiftName: customShiftName || `Shift ${customShiftType}`,
+            timeSlots: [{
+              timeRange: `${customShiftStartTime} - ${customShiftEndTime}`,
+              description: `Auto-created shift ${customShiftType}`
+            }]
+          });
+          if (!shiftResponse.data.success) {
+            throw new Error("Failed to create shift");
+          }
+          await fetchAllShifts(); // Refresh shifts list
+        } catch (shiftError) {
+          throw new Error(`Failed to create shift: ${shiftError.message}`);
+        }
+      }
 
       if (!finalDept) throw new Error("Please select or enter department");
       if (!finalRole) throw new Error("Please select or enter role");
@@ -1713,6 +569,7 @@ const AddEmployeePage = () => {
       }
 
       const fullName = `${firstName} ${lastName}`.trim();
+      const fullAddress = formatFullAddress({ addressLine1, addressLine2, city, state, pinCode, country });
 
       const payload = {
         name: fullName,
@@ -1723,7 +580,13 @@ const AddEmployeePage = () => {
         dob: dob || null,
         department: finalDept,
         role: finalRole,
-        address,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        pinCode,
+        country,
+        address: fullAddress,
         employeeId,
         joinDate,
         locationId,
@@ -1732,44 +595,41 @@ const AddEmployeePage = () => {
         weekOffPerMonth: Number(weekOffPerMonth) || 0,
         salaryPerMonth: Number(salaryPerMonth) || 0,
         parentsName,
-        alternateNumber
+        alternateNumber,
+        clientId
       };
 
       if (password) payload.password = password;
 
       if (editingEmployee || employeeFound) {
         // Update existing employee
-        const empIdToUpdate = editingEmployee ? editingEmployee._id : null;
+        let empIdToUpdate = editingEmployee ? editingEmployee._id : null;
         
         if (!empIdToUpdate && employeeFound) {
           const response = await axios.get(`${API_BASE_URL}/employees/get-employee-by-phone`, {
-            params: { phone }
+            params: { phone, clientId }
           });
           if (response.data.success) {
             const employee = response.data.data;
-            await axios.put(`${API_BASE_URL}/employees/update/${employee._id}`, payload);
-            
-            // Assign shift
+            await axios.put(`${API_BASE_URL}/employees/update/${employee._id}/${clientId}`, payload);
             await assignShiftToEmployee(employee.employeeId, fullName, finalShift, finalStartTime, finalEndTime);
-            
-            // Update salary
-            await axios.put(`${API_BASE_URL}/salary/update-salary/${employee.employeeId}`, {
+            await axios.put(`${API_BASE_URL}/salary/update-salary/${employee.employeeId}/${clientId}`, {
               employeeId: employee.employeeId,
               salaryPerMonth: Number(salaryPerMonth) || 0,
               shiftHours: Number(shiftHours) || 8,
               weekOffPerMonth: Number(weekOffPerMonth) || 0,
+              clientId
             });
           }
         } else {
-          await axios.put(`${API_BASE_URL}/employees/update/${empIdToUpdate}`, payload);
-          
+          await axios.put(`${API_BASE_URL}/employees/update/${empIdToUpdate}/${clientId}`, payload);
           await assignShiftToEmployee(editingEmployee.employeeId, fullName, finalShift, finalStartTime, finalEndTime);
-          
-          await axios.put(`${API_BASE_URL}/salary/update-salary/${editingEmployee.employeeId}`, {
+          await axios.put(`${API_BASE_URL}/salary/update-salary/${editingEmployee.employeeId}/${clientId}`, {
             employeeId: editingEmployee.employeeId,
             salaryPerMonth: Number(salaryPerMonth) || 0,
             shiftHours: Number(shiftHours) || 8,
             weekOffPerMonth: Number(weekOffPerMonth) || 0,
+            clientId
           });
         }
 
@@ -1777,15 +637,14 @@ const AddEmployeePage = () => {
       } else {
         // Add new employee
         await axios.post(`${API_BASE_URL}/employees/add-employee/${clientId}`, payload);
-        
         await assignShiftToEmployee(employeeId, fullName, finalShift, finalStartTime, finalEndTime);
-        
-        await axios.post(`${API_BASE_URL}/salary/set-salary`, {
+        await axios.post(`${API_BASE_URL}/salary/set-salary/${clientId}`, {
           employeeId,
           name: fullName,
           salaryPerMonth: Number(salaryPerMonth),
           shiftHours: Number(shiftHours),
           weekOffPerMonth: Number(weekOffPerMonth),
+          clientId
         });
 
         setSuccessMessage("Employee added successfully!");
@@ -1800,466 +659,1000 @@ const AddEmployeePage = () => {
     }
   };
 
-  const getCurrentDate = () => {
-    return new Date().toISOString().split('T')[0];
+  // Handle phone input change
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhone(value);
+    
+    if (value.length < 10) {
+      setSearchedPhone("");
+      setEmployeeFound(false);
+    }
+  };
+
+  // Create custom shift
+  const handleCreateCustomShift = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      if (!createShiftForm.shiftType || !createShiftForm.shiftName || !createShiftForm.timeRange) {
+        setErrorMessage('Please fill all required fields');
+        return;
+      }
+
+      const response = await axios.post(`${API_BASE_URL}/shifts/create/${clientId}`, {
+        shiftType: createShiftForm.shiftType.toUpperCase(),
+        shiftName: createShiftForm.shiftName,
+        timeSlots: [{
+          timeRange: createShiftForm.timeRange,
+          description: createShiftForm.description || `Shift ${createShiftForm.shiftType}`
+        }]
+      });
+      
+      if (response.data.success) {
+        setSuccessMessage(`Shift ${createShiftForm.shiftType.toUpperCase()} created successfully!`);
+        await fetchAllShifts();
+        setCustomShiftType(createShiftForm.shiftType.toUpperCase());
+        const times = createShiftForm.timeRange.split('-').map(t => t.trim());
+        if (times.length === 2) {
+          setCustomShiftStartTime(times[0]);
+          setCustomShiftEndTime(times[1]);
+        }
+        setCustomShiftName(createShiftForm.shiftName);
+        setShowShiftModal(false);
+        setCreateShiftForm({
+          shiftType: '',
+          shiftName: '',
+          timeRange: '',
+          description: ''
+        });
+      } else {
+        setErrorMessage(response.data.message);
+      }
+    } catch (error) {
+      console.error('Create custom error:', error);
+      setErrorMessage(error.response?.data?.message || 'Failed to create custom shift');
+    }
+  };
+
+  const handleCreateDepartment = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      if (!deptForm.name.trim()) {
+        setErrorMessage('Please enter department name');
+        return;
+      }
+      const response = await axios.post(`${API_BASE_URL}/department/create/${clientId}`, {
+        name: deptForm.name,
+        description: deptForm.description
+      });
+      if (response.data.success) {
+        setSuccessMessage(`Department "${deptForm.name}" created successfully!`);
+        await fetchDepartments();
+        setDepartment(deptForm.name);
+        setShowDeptModal(false);
+        setDeptForm({ name: '', description: '' });
+      } else {
+        setErrorMessage(response.data.message);
+      }
+    } catch (error) {
+      console.error('Create department error:', error);
+      setErrorMessage(error.response?.data?.message || 'Failed to create department');
+    }
+  };
+
+  const handleCreateRole = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      if (!roleForm.name.trim()) {
+        setErrorMessage('Please enter role name');
+        return;
+      }
+      const response = await axios.post(`${API_BASE_URL}/roles/create/${clientId}`, {
+        name: roleForm.name,
+        description: roleForm.description
+      });
+      if (response.data.success) {
+        setSuccessMessage(`Role "${roleForm.name}" created successfully!`);
+        await fetchRoles();
+        setRole(roleForm.name);
+        setShowRoleModal(false);
+        setRoleForm({ name: '', description: '' });
+      } else {
+        setErrorMessage(response.data.message);
+      }
+    } catch (error) {
+      console.error('Create role error:', error);
+      setErrorMessage(error.response?.data?.message || 'Failed to create role');
+    }
+  };
+
+  const handleGetCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      setErrorMessage("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setErrorMessage("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocationForm(prev => ({
+          ...prev,
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6)
+        }));
+
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const data = await res.json();
+          if (data.display_name) {
+            setLocationForm(prev => ({
+              ...prev,
+              fullAddress: data.display_name
+            }));
+          } else {
+            setErrorMessage("Could not fetch full address.");
+          }
+        } catch {
+          setErrorMessage("Failed to fetch address from coordinates.");
+        }
+      },
+      (err) => {
+        setErrorMessage("Location access denied. Please enter manually.");
+      }
+    );
+  };
+
+  const handleCreateLocation = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      if (!locationForm.name.trim() || !locationForm.latitude || !locationForm.longitude) {
+        setErrorMessage('Please fill all required fields');
+        return;
+      }
+      const response = await axios.post(`${API_BASE_URL}/location/add-location/${clientId}`, {
+        name: locationForm.name,
+        latitude: locationForm.latitude,
+        longitude: locationForm.longitude,
+        fullAddress: locationForm.fullAddress
+      });
+      if (response.data.success || response.data.location) {
+        setSuccessMessage(`Location "${locationForm.name}" added successfully!`);
+        await fetchLocationsByClient();
+        const newLocation = response.data.location || response.data.data;
+        if (newLocation && newLocation._id) {
+          setLocationId(newLocation._id);
+        }
+        setShowLocationModal(false);
+        setLocationForm({ name: '', latitude: '', longitude: '', fullAddress: '' });
+      } else {
+        setErrorMessage(response.data.message || 'Failed to add location');
+      }
+    } catch (error) {
+      console.error('Create location error:', error);
+      setErrorMessage(error.response?.data?.message || 'Failed to add location');
+    }
+  };
+
+  // Handle department selection with custom option
+  const handleDepartmentChange = (e) => {
+    const value = e.target.value;
+    if (value === "ADD_NEW_DEPT") {
+      setIsAddingNewDept(true);
+      setShowDeptModal(true);
+    } else {
+      setIsAddingNewDept(false);
+      setDepartment(value);
+      setCustomDepartment("");
+    }
+  };
+
+  // Handle role selection with custom option
+  const handleRoleChange = (e) => {
+    const value = e.target.value;
+    if (value === "ADD_NEW_ROLE") {
+      setIsAddingNewRole(true);
+      setShowRoleModal(true);
+    } else {
+      setIsAddingNewRole(false);
+      setRole(value);
+      setCustomRole("");
+    }
   };
 
   return (
-    <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-lg">
-      <h2 className="mb-6 text-2xl font-bold text-blue-900">
-        {editingEmployee ? "Edit Employee" : "Add New Employee"}
-      </h2>
+    <div className="max-w-6xl p-4 mx-auto">
+      <div className="p-6 bg-white shadow-lg rounded-xl">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {editingEmployee ? "Edit Employee" : "Add New Employee"}
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            {editingEmployee 
+              ? "Update employee details" 
+              : "Search existing employee by phone number or add new"}
+          </p>
+          {clientId && (
+            <p className="mt-1 text-xs text-blue-600">
+              Client ID: {clientId.substring(0, 8)}...
+            </p>
+          )}
+        </div>
 
-      {/* Client Info Banner */}
-      {clientId && !editingEmployee && (
-        <div className="p-3 mb-4 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center">
-            <span className="font-medium">Client ID:</span>
-            <span className="ml-2 font-mono bg-blue-100 px-2 py-1 rounded text-xs">
-              {clientId.substring(0, 8)}...
-            </span>
-            <span className="ml-4 text-xs text-gray-500">
-              Employees will be added under your client account
-            </span>
+        {/* Single Message Display */}
+        {successMessage && (
+          <div className="p-3 mb-4 text-sm text-green-700 border border-green-200 rounded-lg bg-green-50">
+            {successMessage}
           </div>
-        </div>
-      )}
+        )}
+        
+        {errorMessage && (
+          <div className="p-3 mb-4 text-sm text-red-700 border border-red-200 rounded-lg bg-red-50">
+            {errorMessage}
+          </div>
+        )}
 
-      {/* Messages */}
-      {successMessage && (
-        <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
-          {successMessage}
-        </div>
-      )}
-      {errorMessage && (
-        <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
-          {errorMessage}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Phone Search */}
-        <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone Number {!editingEmployee && "(Enter 10 digits to search)"} *
-          </label>
-          <div className="relative">
-            <input
-              value={phone}
-              onChange={handlePhoneChange}
-              className="w-full p-2 border rounded pr-10"
-              placeholder="10-digit mobile number"
-              required
-            />
-            {searching && (
-              <div className="absolute right-3 top-3">
-                <FaSpinner className="animate-spin text-blue-500" />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* ROW 1: Phone Search */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaPhone className="inline mr-1 text-blue-500" /> Phone Number *
+              </label>
+              <div className="relative">
+                <input 
+                  value={phone} 
+                  onChange={handlePhoneChange}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="10-digit phone"
+                  required 
+                />
+                {searching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <FaSpinner className="text-blue-500 animate-spin" />
+                  </div>
+                )}
+                {employeeFound && !searching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <FaCheck className="text-green-500" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          {employeeFound && !searching && (
-            <p className="text-xs text-green-600 mt-1">✓ Employee data loaded</p>
-          )}
-        </div>
-
-        {/* Basic Info - 2 columns */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-        </div>
-
-        {/* Email & Password */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password {!editingEmployee && !employeeFound && "*"}
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border rounded pr-10"
-              required={!editingEmployee && !employeeFound}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-9"
-            >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </button>
-            {editingEmployee && (
-              <p className="text-xs text-gray-500 mt-1">Leave blank to keep current</p>
-            )}
-          </div>
-        </div>
-
-        {/* Personal Details */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-            <input
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              max={getCurrentDate()}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
-            <input
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              className={`w-full p-2 border rounded ${editingEmployee || employeeFound ? 'bg-gray-100' : ''}`}
-              required
-              readOnly={!!editingEmployee || employeeFound}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Join Date *</label>
-            <input
-              type="date"
-              value={joinDate}
-              onChange={(e) => setJoinDate(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Parents & Alternate Number */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Parents Name</label>
-            <input
-              value={parentsName}
-              onChange={(e) => setParentsName(e.target.value)}
-              className="w-full p-2 border rounded"
-              placeholder="Parents' full name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Number</label>
-            <input
-              value={alternateNumber}
-              onChange={(e) => setAlternateNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              className="w-full p-2 border rounded"
-              placeholder="Alternate phone"
-            />
-          </div>
-        </div>
-
-        {/* Department */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
-          <select
-            value={isAddingNewDept ? "ADD_NEW" : department}
-            onChange={(e) => {
-              if (e.target.value === "ADD_NEW") {
-                setIsAddingNewDept(true);
-                setDepartment("");
-              } else {
-                setIsAddingNewDept(false);
-                setDepartment(e.target.value);
-              }
-            }}
-            className="w-full p-2 border rounded"
-            required={!isAddingNewDept}
-          >
-            <option value="">Select Department</option>
-            {departments.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-            <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Department</option>
-          </select>
-          {isAddingNewDept && (
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="text"
-                placeholder="Enter new department name"
-                value={customDepartment}
-                onChange={(e) => setCustomDepartment(e.target.value)}
-                className="flex-1 p-2 border border-blue-300 rounded"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setIsAddingNewDept(false)}
-                className="text-sm text-red-500"
-              >
-                Cancel
-              </button>
+              <p className="mt-1 text-xs text-gray-500">
+                {employeeFound 
+                  ? "Employee found - data loaded" 
+                  : "Enter 10 digits to search"}
+              </p>
             </div>
-          )}
-        </div>
 
-        {/* Role */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
-          <select
-            value={isAddingNewRole ? "ADD_NEW" : role}
-            onChange={(e) => {
-              if (e.target.value === "ADD_NEW") {
-                setIsAddingNewRole(true);
-                setRole("");
-              } else {
-                setIsAddingNewRole(false);
-                setRole(e.target.value);
-              }
-            }}
-            className="w-full p-2 border rounded"
-            required={!isAddingNewRole}
-          >
-            <option value="">Select Role</option>
-            {roles.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-            <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Role</option>
-          </select>
-          {isAddingNewRole && (
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="text"
-                placeholder="Enter new role name"
-                value={customRole}
-                onChange={(e) => setCustomRole(e.target.value)}
-                className="flex-1 p-2 border border-blue-300 rounded"
-                required
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                Alternate Number
+              </label>
+              <input 
+                value={alternateNumber} 
+                onChange={(e) => setAlternateNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Alternate phone"
               />
-              <button
-                type="button"
-                onClick={() => setIsAddingNewRole(false)}
-                className="text-sm text-red-500"
-              >
-                Cancel
-              </button>
             </div>
-          )}
-        </div>
 
-        {/* Location with Client-based fetching */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-          <select
-            value={locationId}
-            onChange={(e) => {
-              const selectedValue = e.target.value;
-              if (selectedValue === "add-new") {
-                navigate("/addlocation");
-                return;
-              }
-              setLocationId(selectedValue);
-            }}
-            className="w-full p-2 border rounded"
-            required
-          >
-            <option value="">Select Location</option>
-            {locations.map((loc) => (
-              <option key={loc._id} value={loc._id}>
-                {loc.name}
-              </option>
-            ))}
-            <option value="add-new" className="font-bold text-blue-600">➕ Add New Location</option>
-          </select>
-          {locations.length === 0 && clientId && (
-            <p className="text-xs text-yellow-600 mt-1">No locations found. Please add a location first.</p>
-          )}
-        </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                Parents Name
+              </label>
+              <input 
+                value={parentsName} 
+                onChange={(e) => setParentsName(e.target.value)} 
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Parents' full name"
+              />
+            </div>
+          </div>
 
-        {/* Address */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="w-full p-2 border rounded"
-            rows="2"
-            placeholder="Full address"
-            required
-          />
-        </div>
+          {/* ROW 2: Email & Password */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaEnvelope className="inline mr-1 text-blue-500" /> Email *
+              </label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="john@example.com"
+                required 
+              />
+            </div>
 
-        {/* Shift Section */}
-        <div className="p-4 border rounded-lg bg-gray-50">
-          <label className="block text-sm font-medium mb-2">Shift Details *</label>
-
-          <select
-            value={isAddingNewShift ? "ADD_NEW" : shiftType}
-            onChange={(e) => {
-              if (e.target.value === "ADD_NEW") {
-                setIsAddingNewShift(true);
-                setShiftType("");
-              } else {
-                setIsAddingNewShift(false);
-                setShiftType(e.target.value);
-              }
-            }}
-            className="w-full p-2 border rounded mb-3"
-            required={!isAddingNewShift}
-          >
-            <option value="">Select Shift Type</option>
-            {shiftList.map((shift) => (
-              <option key={shift} value={shift}>Shift {shift}</option>
-            ))}
-            <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Shift Type</option>
-          </select>
-
-          {isAddingNewShift ? (
-            <div className="space-y-3 p-3 border border-blue-200 rounded bg-blue-50">
-              <div className="flex justify-between">
-                <span className="text-sm font-medium text-blue-800">Create New Shift</span>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingNewShift(false)}
-                  className="text-xs text-red-500"
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaLock className="inline mr-1 text-blue-500" /> Password {!editingEmployee && !employeeFound && "*"}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder={editingEmployee || employeeFound ? "Keep blank for no change" : "Enter password"}
+                  required={!editingEmployee && !employeeFound}
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)} 
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                 >
-                  Cancel
+                  {showPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                 </button>
               </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Shift Type (A-Z) *</label>
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaCalendar className="inline mr-1 text-blue-500" /> Date of Birth
+              </label>
+              <input 
+                type="date" 
+                value={dob} 
+                onChange={(e) => setDob(e.target.value)} 
+                max={getCurrentDate()}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* ROW 3: First Name, Last Name, Employee ID */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaUser className="inline mr-1 text-blue-500" /> First Name *
+              </label>
+              <input 
+                value={firstName} 
+                onChange={(e) => setFirstName(e.target.value)} 
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="John"
+                required 
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaUser className="inline mr-1 text-blue-500" /> Last Name
+              </label>
+              <input 
+                value={lastName} 
+                onChange={(e) => setLastName(e.target.value)} 
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Doe"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaBriefcase className="inline mr-1 text-blue-500" /> Employee ID *
+              </label>
+              <input
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                className={`w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                  editingEmployee || employeeFound ? 'bg-gray-50' : ''
+                }`}
+                placeholder="EMP001"
+                required
+                readOnly={!!editingEmployee || employeeFound}
+              />
+            </div>
+          </div>
+
+          {/* ROW 4: Join Date, Location, Department */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaCalendar className="inline mr-1 text-blue-500" /> Join Date *
+              </label>
+              <input 
+                type="date" 
+                value={joinDate} 
+                onChange={(e) => setJoinDate(e.target.value)} 
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required 
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaMapMarkerAlt className="inline mr-1 text-blue-500" /> Location *
+              </label>
+              <select
+                value={locationId}
+                onChange={(e) => {
+                  const selectedValue = e.target.value;
+                  if (selectedValue === "ADD_NEW_LOCATION") {
+                    setShowLocationModal(true);
+                    return;
+                  }
+                  setLocationId(selectedValue);
+                }}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              >
+                <option value="">Select Location</option>
+                {locations.map((loc) => (
+                  <option key={loc._id} value={loc._id}>{loc.name}</option>
+                ))}
+                <option value="ADD_NEW_LOCATION" className="font-medium text-blue-600">+ Add New</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaBuilding className="inline mr-1 text-blue-500" /> Department *
+              </label>
+              <select
+                value={isAddingNewDept ? "ADD_NEW_DEPT" : department}
+                onChange={handleDepartmentChange}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              >
+                <option value="">Select Department</option>
+                {departments.map((dept) => (
+                  <option key={dept.name} value={dept.name}>
+                    {dept.name} {dept.employeeCount > 0 ? `(${dept.employeeCount})` : ''}
+                  </option>
+                ))}
+                <option value="ADD_NEW_DEPT" className="font-medium text-blue-600">+ Add New</option>
+              </select>
+              {isAddingNewDept && (
                 <input
                   type="text"
-                  value={customShiftType}
-                  onChange={(e) => setCustomShiftType(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
-                  className="w-full p-2 border rounded"
-                  maxLength="1"
+                  value={customDepartment}
+                  onChange={(e) => setCustomDepartment(e.target.value)}
+                  placeholder="Enter new department name"
+                  className="w-full mt-2 p-2 border border-gray-300 rounded-lg text-sm"
+                  required
+                />
+              )}
+            </div>
+          </div>
+
+          {/* ROW 5: Role & Week Offs */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaUserTie className="inline mr-1 text-blue-500" /> Role *
+              </label>
+              <select
+                value={isAddingNewRole ? "ADD_NEW_ROLE" : role}
+                onChange={handleRoleChange}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              >
+                <option value="">Select Role</option>
+                {roles.map((roleItem) => (
+                  <option key={roleItem.name} value={roleItem.name}>
+                    {roleItem.name} {roleItem.employeeCount > 0 ? `(${roleItem.employeeCount})` : ''}
+                  </option>
+                ))}
+                <option value="ADD_NEW_ROLE" className="font-medium text-blue-600">+ Add New</option>
+              </select>
+              {isAddingNewRole && (
+                <input
+                  type="text"
+                  value={customRole}
+                  onChange={(e) => setCustomRole(e.target.value)}
+                  placeholder="Enter new role name"
+                  className="w-full mt-2 p-2 border border-gray-300 rounded-lg text-sm"
+                  required
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaCalendar className="inline mr-1 text-blue-500" /> Week Offs per Month *
+              </label>
+              <input
+                type="number"
+                value={weekOffPerMonth}
+                onChange={(e) => setWeekOffPerMonth(e.target.value)}
+                min="0"
+                max="30"
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Enter number of week offs"
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">Total number of week offs per month</p>
+            </div>
+          </div>
+
+          {/* ADDRESS SECTION */}
+          <div className="pt-6 border-t">
+            <h3 className="mb-4 text-lg font-semibold text-gray-800">
+              <FaMapMarkerAlt className="inline mr-2 text-blue-500" /> Address Details
+            </h3>
+            
+            <div className="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  Address Line 1 *
+                </label>
+                <input 
+                  value={addressLine1} 
+                  onChange={(e) => setAddressLine1(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="House no, Street, Area"
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Start Time *</label>
-                  <input
-                    type="time"
-                    value={customShiftStartTime}
-                    onChange={(e) => setCustomShiftStartTime(e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">End Time *</label>
-                  <input
-                    type="time"
-                    value={customShiftEndTime}
-                    onChange={(e) => setCustomShiftEndTime(e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  Address Line 2
+                </label>
+                <input 
+                  value={addressLine2} 
+                  onChange={(e) => setAddressLine2(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Landmark, Building name"
+                />
               </div>
             </div>
-          ) : (
-            shiftType && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <FaMapPin className="inline mr-1 text-gray-400" /> Pin Code *
+                </label>
+                <input 
+                  type="text" 
+                  value={pinCode} 
+                  onChange={handlePinCodeChange}
+                  maxLength="6"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="110001"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <FaCity className="inline mr-1 text-gray-400" /> City *
+                </label>
+                <input 
+                  value={city} 
+                  onChange={(e) => setCity(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="City"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <FaGlobeAsia className="inline mr-1 text-gray-400" /> State *
+                </label>
+                <input 
+                  value={state} 
+                  onChange={(e) => setState(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="State"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <FaGlobeAsia className="inline mr-1 text-gray-400" /> Country
+                </label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="India">India</option>
+                  <option value="USA">USA</option>
+                  <option value="UK">UK</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* SHIFT SECTION */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaClock className="inline mr-1 text-blue-500" /> Shift Type *
+              </label>
+              <select
+                value={isAddingNewShift ? "ADD_NEW" : shiftType}
+                onChange={(e) => handleShiftChange(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              >
+                <option value="">Select Shift</option>
+                {shiftList && shiftList.length > 0 ? (
+                  shiftList.map((shift) => (
+                    <option key={shift.type} value={shift.type}>
+                      Shift {shift.type}: {shift.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>Loading shifts...</option>
+                )}
+                <option value="ADD_NEW" className="font-medium text-blue-600">+ Add New</option>
+              </select>
+            </div>
+
+            {showShiftDetails && !isAddingNewShift && (
+              <>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Start Time *</label>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Start Time *
+                  </label>
                   <input
                     type="time"
                     value={shiftStartTime}
                     onChange={(e) => setShiftStartTime(e.target.value)}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50"
                     required
+                    readOnly
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">End Time *</label>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    End Time *
+                  </label>
                   <input
                     type="time"
                     value={shiftEndTime}
                     onChange={(e) => setShiftEndTime(e.target.value)}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50"
+                    required
+                    readOnly
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Shift Hours/Day *
+                  </label>
+                  <input 
+                    type="number" 
+                    value={shiftHours} 
+                    onChange={(e) => setShiftHours(e.target.value)} 
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    min="1"
+                    max="24"
+                    required 
+                  />
+                </div>
+              </>
+            )}
+
+            {isAddingNewShift && (
+              <>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Custom Shift Type (A-Z) *
+                  </label>
+                  <input
+                    type="text"
+                    maxLength="1"
+                    value={customShiftType}
+                    onChange={(e) => setCustomShiftType(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                    placeholder="E"
                     required
                   />
                 </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Start Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={customShiftStartTime}
+                    onChange={(e) => setCustomShiftStartTime(e.target.value)}
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    End Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={customShiftEndTime}
+                    onChange={(e) => setCustomShiftEndTime(e.target.value)}
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Shift Hours/Day *
+                  </label>
+                  <input 
+                    type="number" 
+                    value={shiftHours} 
+                    onChange={(e) => setShiftHours(e.target.value)} 
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                    min="1"
+                    max="24"
+                    required 
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* SALARY SECTION */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                <FaDollarSign className="inline mr-1 text-blue-500" /> Salary/Month *
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <span className="text-sm text-gray-500">₹</span>
+                </div>
+                <input 
+                  type="number" 
+                  value={salaryPerMonth} 
+                  onChange={(e) => setSalaryPerMonth(e.target.value)} 
+                  className="pl-8 w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="0.00"
+                  required 
+                />
               </div>
-            )
-          )}
-        </div>
+            </div>
 
-        {/* Salary & Week Off */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Salary/Month *</label>
-            <input
-              type="number"
-              value={salaryPerMonth}
-              onChange={(e) => setSalaryPerMonth(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                Week Offs/Month *
+              </label>
+              <input 
+                type="number" 
+                value={weekOffPerMonth} 
+                readOnly
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50"
+                placeholder="0"
+                required 
+              />
+              <p className="mt-1 text-xs text-gray-500">From week off selection</p>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Shift Hours/Day *</label>
-            <input
-              type="number"
-              value={shiftHours}
-              onChange={(e) => setShiftHours(e.target.value)}
-              className="w-full p-2 border rounded"
-              min="1"
-              max="24"
-              required
-            />
+
+          {/* SUBMIT BUTTON */}
+          <div className="pt-4">
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className={`w-full md:w-auto px-8 py-3 rounded-lg font-medium transition duration-200 ${
+                loading 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
+              }`}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <svg className="w-5 h-5 mr-3 -ml-1 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </div>
+              ) : editingEmployee || employeeFound ? (
+                "Update Employee"
+              ) : (
+                "Add New Employee"
+              )}
+            </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Week Off/Month *</label>
-            <input
-              type="number"
-              value={weekOffPerMonth}
-              onChange={(e) => setWeekOffPerMonth(e.target.value)}
-              className="w-full p-2 border rounded"
-              min="0"
-              max="30"
-              required
-            />
+        </form>
+      </div>
+
+      {/* CREATE SHIFT MODAL */}
+      {showShiftModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold text-gray-800">Create New Shift</h3>
+              <button onClick={() => setShowShiftModal(false)} className="text-2xl text-gray-400 hover:text-gray-600">
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCustomShift} className="p-6">
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                      Shift Type (Letter A-Z) *
+                    </label>
+                    <input
+                      type="text"
+                      maxLength="1"
+                      value={createShiftForm.shiftType}
+                      onChange={(e) => setCreateShiftForm(prev => ({ 
+                        ...prev, 
+                        shiftType: e.target.value.toUpperCase().replace(/[^A-Z]/g, '')
+                      }))}
+                      className="w-full px-4 py-2 text-sm uppercase border border-gray-300 rounded-lg"
+                      placeholder="E"
+                      required
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Enter a single letter (A-Z)</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                      Shift Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={createShiftForm.shiftName}
+                      onChange={(e) => setCreateShiftForm(prev => ({ ...prev, shiftName: e.target.value }))}
+                      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg"
+                      placeholder="e.g., Extended Shift E"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-3 text-sm font-medium text-gray-700">
+                    Time Slot Configuration *
+                  </label>
+                  
+                  <div className="p-3 space-y-3 border rounded-lg bg-gray-50">
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-600">Time Range *</label>
+                      <input
+                        type="text"
+                        value={createShiftForm.timeRange}
+                        onChange={(e) => setCreateShiftForm(prev => ({ ...prev, timeRange: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                        placeholder="e.g., 10:00 - 19:00"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-600">Description *</label>
+                      <input
+                        type="text"
+                        value={createShiftForm.description}
+                        onChange={(e) => setCreateShiftForm(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                        placeholder="e.g., Morning 10 to 7"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {createShiftForm.shiftType && createShiftForm.timeRange && (
+                  <div className="p-3 border border-blue-200 rounded bg-blue-50">
+                    <h4 className="mb-2 text-sm font-medium text-blue-800">Preview:</h4>
+                    <p className="text-sm text-blue-700">
+                      Shift {createShiftForm.shiftType}: {createShiftForm.shiftName}
+                    </p>
+                    <p className="mt-1 text-sm text-blue-600">
+                      Time: {createShiftForm.timeRange}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowShiftModal(false)}
+                  className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+                >
+                  Create Shift
+                </button>
+              </div>
+            </form>
           </div>
         </div>
+      )}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition duration-200"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center">
-              <FaSpinner className="animate-spin mr-2" />
-              Processing...
-            </span>
-          ) : editingEmployee || employeeFound ? (
-            "Update Employee"
-          ) : (
-            "Add Employee"
-          )}
-        </button>
-      </form>
+      {/* DEPARTMENT MODAL */}
+      {showDeptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold text-gray-800">Add New Department</h3>
+              <button onClick={() => setShowDeptModal(false)} className="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form onSubmit={handleCreateDepartment} className="p-6">
+              <div className="space-y-4">
+                <div><label className="block mb-2 text-sm font-medium text-gray-700">Department Name *</label><input type="text" value={deptForm.name} onChange={(e) => setDeptForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="e.g., Sales, Development" required /></div>
+                <div><label className="block mb-2 text-sm font-medium text-gray-700">Description</label><textarea value={deptForm.description} onChange={(e) => setDeptForm(prev => ({ ...prev, description: e.target.value }))} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Describe the department..." /></div>
+              </div>
+              <div className="flex justify-end pt-6 mt-6 space-x-3 border-t">
+                <button type="button" onClick={() => setShowDeptModal(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700">Add Department</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ROLE MODAL */}
+      {showRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold text-gray-800">Add New Role</h3>
+              <button onClick={() => setShowRoleModal(false)} className="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form onSubmit={handleCreateRole} className="p-6">
+              <div className="space-y-4">
+                <div><label className="block mb-2 text-sm font-medium text-gray-700">Role Name *</label><input type="text" value={roleForm.name} onChange={(e) => setRoleForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="e.g., Manager, Developer" required /></div>
+                <div><label className="block mb-2 text-sm font-medium text-gray-700">Description</label><textarea value={roleForm.description} onChange={(e) => setRoleForm(prev => ({ ...prev, description: e.target.value }))} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Describe the role..." /></div>
+              </div>
+              <div className="flex justify-end pt-6 mt-6 space-x-3 border-t">
+                <button type="button" onClick={() => setShowRoleModal(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700">Add Role</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* LOCATION MODAL */}
+      {showLocationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold text-gray-800">Add New Location</h3>
+              <button onClick={() => setShowLocationModal(false)} className="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form onSubmit={handleCreateLocation} className="p-6">
+              <div className="space-y-6">
+                <div><label className="block mb-2 text-sm font-medium text-gray-700">Location Name *</label><input type="text" value={locationForm.name} onChange={(e) => setLocationForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="e.g., Main Office, Branch Office" required /></div>
+                <div className="flex items-center justify-between mb-3"><label className="block text-sm font-medium text-gray-700">Location Coordinates</label><button type="button" onClick={handleGetCurrentLocation} className="px-4 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700">📍 Get Current Location</button></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block mb-2 text-sm font-medium text-gray-700">Latitude *</label><input type="text" value={locationForm.latitude} onChange={(e) => setLocationForm(prev => ({ ...prev, latitude: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="e.g., 28.6139" required /></div>
+                  <div><label className="block mb-2 text-sm font-medium text-gray-700">Longitude *</label><input type="text" value={locationForm.longitude} onChange={(e) => setLocationForm(prev => ({ ...prev, longitude: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="e.g., 77.2090" required /></div>
+                </div>
+                <div><label className="block mb-2 text-sm font-medium text-gray-700">Full Address *</label><textarea value={locationForm.fullAddress} onChange={(e) => setLocationForm(prev => ({ ...prev, fullAddress: e.target.value }))} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Enter full address" required /></div>
+              </div>
+              <div className="flex justify-end pt-6 mt-6 space-x-3 border-t">
+                <button type="button" onClick={() => setShowLocationModal(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700">Add Location</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

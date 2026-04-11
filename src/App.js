@@ -167,7 +167,9 @@ import JobPositionsStatus from "./Pages/JobPositionsStatus.js";
 import NewAssessment from "./Pages/NewAssessment.js";
 import AllMedicalCertificate from "./Pages/AllMedicalCertificate.js";
 import RegisterPage from "./Pages/Register.js";
-
+import Regularization from "./Pages/Regularization.js";
+import AllMedicalCertificateForAdmin from "./Pages/AllMedicalCertificateForAdmin.js";
+import HolidaysCalendar from "./Pages/HolidaysCalendar.js";
 
 
 // import EmpManagment from "./Pages/EmpManagment.js";
@@ -357,6 +359,10 @@ function App() {
               <Route path="/requests" element={<ClientApplications />} />
              <Route path="/new-assessment" element={<NewAssessment />} />
               <Route path="/all-medical-certificates" element={<AllMedicalCertificate />} />
+              <Route path="/regularization" element={<Regularization />} />
+              <Route path="/all-medical-certificatesforadmin" element={<AllMedicalCertificateForAdmin />} />
+              <Route path="/holidays-calendar" element={<HolidaysCalendar />} />
+
 
             </Routes>
           </AdminLayout>

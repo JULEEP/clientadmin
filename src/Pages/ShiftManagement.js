@@ -865,7 +865,7 @@ const ShiftManagement = () => {
 
            
 
-             {/* Create Buttons */}
+             {/* Create Buttons
             {masterShifts.length === 0 && (
               <button
                 onClick={handleCreateDefaultShifts}
@@ -873,7 +873,7 @@ const ShiftManagement = () => {
               >
                 <FaPlus className="text-xs" /> Create Defaults
               </button>
-            )}
+            )} */}
             <button
               onClick={() => setShowCustomCreateModal(true)}
               className="flex items-center h-8 gap-1 px-3 text-xs font-medium text-white transition bg-green-600 rounded-md hover:bg-green-700"

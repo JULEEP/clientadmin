@@ -7,11 +7,28 @@ import { motion } from "framer-motion";
 
 const BASE_URL = "http://localhost:5000/api";
 
+// DUMMY DATA FOR FALLBACK
+const DUMMY_EMPLOYEES = [
+  { _id: "dummy_emp_001", employeeId: "EMP001", name: "Rajesh Kumar", department: "IT", role: "Senior Software Engineer", status: "active", email: "rajesh@example.com", joinDate: "2023-01-15" },
+  { _id: "dummy_emp_002", employeeId: "EMP002", name: "Priya Sharma", department: "HR", role: "HR Manager", status: "active", email: "priya@example.com", joinDate: "2023-02-20" },
+  { _id: "dummy_emp_003", employeeId: "EMP003", name: "Amit Patel", department: "Sales", role: "Sales Executive", status: "active", email: "amit@example.com", joinDate: "2023-03-10" },
+  { _id: "dummy_emp_004", employeeId: "EMP004", name: "Neha Gupta", department: "Marketing", role: "Marketing Specialist", status: "inactive", email: "neha@example.com", joinDate: "2023-04-05" },
+  { _id: "dummy_emp_005", employeeId: "EMP005", name: "Suresh Reddy", department: "Operations", role: "Operations Manager", status: "active", email: "suresh@example.com", joinDate: "2023-05-12" },
+];
+
+const DUMMY_ATTENDANCE_RECORDS = [
+  { _id: "dummy_att_001", employeeId: "EMP001", checkInTime: new Date().toISOString(), checkOutTime: new Date(Date.now() + 8*60*60*1000).toISOString(), totalHours: 8.5, onsite: true, reason: "Office Work", status: "checked-out", distance: 1250, employeeEmail: "rajesh@example.com" },
+  { _id: "dummy_att_002", employeeId: "EMP002", checkInTime: new Date().toISOString(), checkOutTime: null, totalHours: 4.5, onsite: true, reason: "HR Meeting", status: "checked-in", distance: 550, employeeEmail: "priya@example.com" },
+  { _id: "dummy_att_003", employeeId: "EMP003", checkInTime: new Date().toISOString(), checkOutTime: new Date(Date.now() + 7.5*60*60*1000).toISOString(), totalHours: 7.5, onsite: false, reason: "Work From Home", status: "checked-out", distance: 0, employeeEmail: "amit@example.com" },
+  { _id: "dummy_att_004", employeeId: "EMP005", checkInTime: new Date().toISOString(), checkOutTime: new Date(Date.now() + 9*60*60*1000).toISOString(), totalHours: 9.0, onsite: true, reason: "Operations", status: "checked-out", distance: 980, employeeEmail: "suresh@example.com" },
+];
+
 const TodayAttendance = () => {
   const [todayRecords, setTodayRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isUsingDummyData, setIsUsingDummyData] = useState(false);
   const navigate = useNavigate();
   
   // Get clientId from localStorage
@@ -51,6 +68,54 @@ const TodayAttendance = () => {
     limit: 10,
   });
 
+  // Load dummy data function
+  const loadDummyData = () => {
+    console.log("Loading dummy attendance data as fallback");
+    setIsUsingDummyData(true);
+    
+    // Filter active employees from dummy data
+    const activeEmps = DUMMY_EMPLOYEES.filter(emp => emp.status === 'active');
+    setEmployees(activeEmps);
+    
+    // Extract unique departments and designations
+    const depts = new Set();
+    const designations = new Set();
+    activeEmps.forEach(emp => {
+      if (emp.department) depts.add(emp.department);
+      if (emp.role || emp.designation) designations.add(emp.role || emp.designation);
+    });
+    setUniqueDepartments(Array.from(depts).sort());
+    setUniqueDesignations(Array.from(designations).sort());
+    
+    // Map dummy attendance records with employee details
+    const merged = DUMMY_ATTENDANCE_RECORDS
+      .map((rec) => {
+        const employee = activeEmps.find(
+          (e) => e.employeeId === rec.employeeId
+        );
+        if (!employee) return null;
+        return {
+          ...rec,
+          name: employee?.name || "N/A",
+          employeeId: rec.employeeId,
+          department: employee?.department || "N/A",
+          designation: employee?.role || "N/A",
+          joinDate: employee?.joinDate,
+          employeeEmail: employee?.email || rec.employeeEmail || "-"
+        };
+      })
+      .filter(rec => rec !== null);
+    
+    setTodayRecords(merged);
+    setFilteredRecords(merged);
+    setPagination(prev => ({
+      ...prev,
+      totalCount: merged.length,
+      totalPages: Math.ceil(merged.length / prev.limit)
+    }));
+    setLoading(false);
+  };
+
   // Click outside handlers for filter dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -67,8 +132,7 @@ const TodayAttendance = () => {
 
   useEffect(() => {
     if (!clientId) {
-      setError("Client ID not found. Please login again.");
-      setLoading(false);
+      loadDummyData();
       return;
     }
     
@@ -88,6 +152,8 @@ const TodayAttendance = () => {
   const fetchTodayAttendance = async () => {
     try {
       setLoading(true);
+      setError("");
+      setIsUsingDummyData(false);
 
       // 1️⃣ Fetch today's attendance with clientId
       const attendanceResp = await axios.get(
@@ -104,6 +170,13 @@ const TodayAttendance = () => {
         attendance = attendanceResp.data.data;
       }
 
+      // If no attendance data, use dummy
+      if (!attendance || attendance.length === 0) {
+        console.log("No attendance data from API, using dummy data");
+        loadDummyData();
+        return;
+      }
+
       // 2️⃣ Fetch employee list with clientId
       const empResp = await axios.get(
         `${BASE_URL}/employees/get-employees/${clientId}`
@@ -117,6 +190,13 @@ const TodayAttendance = () => {
         employeesData = empResp.data.employees;
       } else if (empResp.data?.data && Array.isArray(empResp.data.data)) {
         employeesData = empResp.data.data;
+      }
+      
+      // If no employees data, use dummy
+      if (!employeesData || employeesData.length === 0) {
+        console.log("No employees data from API, using dummy data");
+        loadDummyData();
+        return;
       }
       
       // Filter active employees
@@ -165,10 +245,21 @@ const TodayAttendance = () => {
         })
         .filter(rec => rec !== null); // Remove hidden employees
 
+      // If merged records is empty, use dummy
+      if (!merged || merged.length === 0) {
+        console.log("No valid attendance records after filtering, using dummy data");
+        loadDummyData();
+        return;
+      }
+
       setTodayRecords(merged);
+      setFilteredRecords(merged);
+      setIsUsingDummyData(false);
     } catch (err) {
       console.error("Error fetching today's attendance:", err);
       setError(err.response?.data?.message || "Failed to fetch today's attendance");
+      // Use dummy data on error
+      loadDummyData();
     } finally {
       setLoading(false);
     }
@@ -293,23 +384,6 @@ const TodayAttendance = () => {
     });
   };
 
-  if (!clientId) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="max-w-md p-8 text-center bg-white border border-red-200 shadow-lg rounded-2xl">
-          <div className="mb-4 text-4xl text-red-500">🔒</div>
-          <p className="mb-4 text-lg font-semibold text-red-600">Client ID not found!</p>
-          <button
-            onClick={() => navigate("/login")}
-            className="px-6 py-2 font-semibold text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (loading)
     return (
       <div className="min-h-screen p-2 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -324,7 +398,7 @@ const TodayAttendance = () => {
       </div>
     );
     
-  if (error)
+  if (error && !isUsingDummyData)
     return (
       <div className="min-h-screen p-2 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="mx-auto max-w-9xl">
@@ -345,8 +419,15 @@ const TodayAttendance = () => {
     <div className="min-h-screen p-2 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="mx-auto max-w-9xl">
         
-        {/* Client Info Banner - NEW */}
-        {clientData && (
+        {/* Demo Mode Banner */}
+        {isUsingDummyData && (
+          <div className="mb-3 p-2 text-xs text-yellow-700 bg-yellow-50 border border-yellow-300 rounded-lg">
+            <span className="font-medium">⚠️ Demo Mode:</span> Showing sample attendance data. API connection may be unavailable.
+          </div>
+        )}
+        
+        {/* Client Info Banner - Only show when not in dummy mode */}
+        {clientData && !isUsingDummyData && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
