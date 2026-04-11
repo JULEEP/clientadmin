@@ -3,13 +3,60 @@ import { FaBuilding, FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = "http://localhost:5000/api";
+
+// DUMMY DATA FOR FALLBACK
+const DUMMY_LOCATIONS = [
+  {
+    _id: "dummy_loc_001",
+    name: "Mumbai Head Office",
+    fullAddress: "Andheri East, Mumbai, Maharashtra - 400001",
+    latitude: "19.0760",
+    longitude: "72.8777",
+    status: "active"
+  },
+  {
+    _id: "dummy_loc_002",
+    name: "Delhi Branch",
+    fullAddress: "Connaught Place, New Delhi, Delhi - 110001",
+    latitude: "28.6139",
+    longitude: "77.2090",
+    status: "active"
+  },
+  {
+    _id: "dummy_loc_003",
+    name: "Bangalore Office",
+    fullAddress: "Indiranagar, Bangalore, Karnataka - 560001",
+    latitude: "12.9716",
+    longitude: "77.5946",
+    status: "inactive"
+  },
+  {
+    _id: "dummy_loc_004",
+    name: "Pune Satellite Office",
+    fullAddress: "Hinjewadi, Pune, Maharashtra - 411001",
+    latitude: "18.5204",
+    longitude: "73.8567",
+    status: "active"
+  },
+  {
+    _id: "dummy_loc_005",
+    name: "Chennai Center",
+    fullAddress: "T Nagar, Chennai, Tamil Nadu - 600001",
+    latitude: "13.0827",
+    longitude: "80.2707",
+    status: "active"
+  }
+];
+
 const LocationListPage = () => {
   const [locations, setLocations] = useState([]);
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isUsingDummyData, setIsUsingDummyData] = useState(false);
   
-  // Search filters - LIKE ABSENTTODAY.JS
+  // Search filters
   const [searchTerm, setSearchTerm] = useState("");
   
   // City and State filter states
@@ -50,7 +97,23 @@ const LocationListPage = () => {
   const clientId = getClientId();
   const navigate = useNavigate();
 
-  // Click outside handlers for filter dropdowns - LIKE ABSENTTODAY.JS
+  // Load dummy data function
+  const loadDummyData = () => {
+    console.log("Loading dummy locations data as fallback");
+    setIsUsingDummyData(true);
+    setLocations(DUMMY_LOCATIONS);
+    extractUniqueValues(DUMMY_LOCATIONS);
+    setFilteredLocations(DUMMY_LOCATIONS);
+    setPagination(prev => ({
+      ...prev,
+      totalCount: DUMMY_LOCATIONS.length,
+      totalPages: Math.ceil(DUMMY_LOCATIONS.length / prev.limit),
+      currentPage: 1
+    }));
+    setLoading(false);
+  };
+
+  // Click outside handlers for filter dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (cityFilterRef.current && !cityFilterRef.current.contains(event.target)) {
@@ -70,22 +133,17 @@ const LocationListPage = () => {
     const states = new Set();
     
     locationsData.forEach(loc => {
-      // Extract city from fullAddress (simple parsing)
       const addressParts = loc.fullAddress.split(',');
       if (addressParts.length > 1) {
-        // Try to get city (second last part usually)
         const possibleCity = addressParts[addressParts.length - 2]?.trim();
         if (possibleCity && possibleCity.length > 2) cities.add(possibleCity);
       }
       
-      // Extract state from fullAddress (last part usually)
       const possibleState = addressParts[addressParts.length - 1]?.trim();
       if (possibleState && possibleState.length > 2) states.add(possibleState);
       
-      // Also try to extract from pin code pattern
       const pinMatch = loc.fullAddress.match(/\b\d{6}\b/);
       if (pinMatch) {
-        // State might be before pin code
         const beforePin = loc.fullAddress.substring(0, pinMatch.index).trim();
         const lastComma = beforePin.lastIndexOf(',');
         if (lastComma !== -1) {
@@ -102,19 +160,30 @@ const LocationListPage = () => {
   // Fetch all locations for specific client
   const fetchLocations = async () => {
     try {
+      setLoading(true);
+      setErrorMessage("");
+      setIsUsingDummyData(false);
+      
       // Check if clientId exists
       if (!clientId) {
-        setErrorMessage("Client ID not found. Please login again.");
-        setLoading(false);
+        loadDummyData();
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/location/alllocation/${clientId}`);
+      const response = await fetch(`${API_BASE_URL}/location/alllocation/${clientId}`);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.log("Invalid response from API, using dummy data");
+        loadDummyData();
+        return;
+      }
+      
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.message || "Failed to fetch locations");
 
-      // Handle different response structures
       let locationsData = [];
       if (Array.isArray(data)) {
         locationsData = data;
@@ -126,11 +195,14 @@ const LocationListPage = () => {
         locationsData = data || [];
       }
 
+      // If no data, use dummy
+      if (!locationsData || locationsData.length === 0) {
+        loadDummyData();
+        return;
+      }
+
       setLocations(locationsData);
-      
-      // Extract unique cities and states
       extractUniqueValues(locationsData);
-      
       setFilteredLocations(locationsData);
       setLoading(false);
       
@@ -141,7 +213,11 @@ const LocationListPage = () => {
         currentPage: 1
       }));
     } catch (error) {
+      console.error("Fetch error:", error);
       setErrorMessage(error.message);
+      // Use dummy data on error
+      loadDummyData();
+    } finally {
       setLoading(false);
     }
   };
@@ -156,14 +232,12 @@ const LocationListPage = () => {
   }, [searchTerm, filterCity, filterState, filterPinCode, locations]);
 
   useEffect(() => {
-    // Reset to first page when filters change
     setPagination(prev => ({ ...prev, currentPage: 1 }));
   }, [searchTerm, filterCity, filterState, filterPinCode]);
 
   const filterLocations = () => {
     let filtered = [...locations];
 
-    // Filter by Location Name or Address
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(loc => 
@@ -172,7 +246,6 @@ const LocationListPage = () => {
       );
     }
 
-    // Filter by City
     if (filterCity) {
       filtered = filtered.filter(loc => {
         const addressParts = loc.fullAddress.split(',');
@@ -184,7 +257,6 @@ const LocationListPage = () => {
       });
     }
 
-    // Filter by State
     if (filterState) {
       filtered = filtered.filter(loc => {
         const addressParts = loc.fullAddress.split(',');
@@ -193,7 +265,6 @@ const LocationListPage = () => {
       });
     }
 
-    // Filter by Pin Code
     if (filterPinCode.trim()) {
       filtered = filtered.filter(loc => {
         const pinMatch = loc.fullAddress.match(/\b\d{6}\b/);
@@ -201,7 +272,6 @@ const LocationListPage = () => {
       });
     }
 
-    // Sort by status (active first, inactive last)
     filtered.sort((a, b) => {
       const statusA = a.status === "inactive" ? 1 : 0;
       const statusB = b.status === "inactive" ? 1 : 0;
@@ -216,7 +286,6 @@ const LocationListPage = () => {
     }));
   };
 
-  // Clear all filters - LIKE ABSENTTODAY.JS
   const clearFilters = () => {
     setSearchTerm("");
     setFilterCity("");
@@ -224,7 +293,6 @@ const LocationListPage = () => {
     setFilterPinCode("");
   };
 
-  // Pagination handlers
   const handleItemsPerPageChange = (limit) => {
     setPagination({
       currentPage: 1,
@@ -275,23 +343,28 @@ const LocationListPage = () => {
     return pageNumbers;
   };
 
-  // Calculate pagination
   const indexOfLastItem = pagination.currentPage * pagination.limit;
   const indexOfFirstItem = indexOfLastItem - pagination.limit;
   const currentItems = filteredLocations.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Handle Delete
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this location?")) return;
 
-    // Check if clientId exists
+    // If using dummy data, just remove locally
+    if (isUsingDummyData) {
+      setLocations((prev) => prev.filter((loc) => loc._id !== id));
+      setFilteredLocations((prev) => prev.filter((loc) => loc._id !== id));
+      alert("✅ Location deleted successfully (Demo Mode)!");
+      return;
+    }
+
     if (!clientId) {
       alert("Client ID not found. Please login again.");
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/location/deletelocation/${id}/${clientId}`, {
+      const response = await fetch(`${API_BASE_URL}/location/deletelocation/${id}/${clientId}`, {
         method: "DELETE",
       });
       const data = await response.json();
@@ -306,7 +379,6 @@ const LocationListPage = () => {
     }
   };
 
-  // Handle Toggle Status
   const handleToggleStatus = async (location) => {
     const newStatus = location.status === "inactive" ? "active" : "inactive";
     const confirmMsg = location.status === "inactive"
@@ -315,14 +387,22 @@ const LocationListPage = () => {
 
     if (!window.confirm(confirmMsg)) return;
 
-    // Check if clientId exists
+    // If using dummy data, just update locally
+    if (isUsingDummyData) {
+      setLocations((prev) =>
+        prev.map((loc) => (loc._id === location._id ? { ...loc, status: newStatus } : loc))
+      );
+      alert(`✅ Location set to ${newStatus} (Demo Mode)!`);
+      return;
+    }
+
     if (!clientId) {
       alert("Client ID not found. Please login again.");
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/location/updatelocation/${location._id}/${clientId}`, {
+      const response = await fetch(`${API_BASE_URL}/location/updatelocation/${location._id}/${clientId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -343,7 +423,6 @@ const LocationListPage = () => {
     }
   };
 
-  // Open Edit Modal
   const openEditModal = (location) => {
     setEditLocation(location);
     setUpdatedName(location.name || "");
@@ -353,18 +432,36 @@ const LocationListPage = () => {
     setIsEditModalOpen(true);
   };
   
-  // Handle Update
   const handleUpdate = async (e) => {
     e.preventDefault();
     
-    // Check if clientId exists
+    // If using dummy data, just update locally
+    if (isUsingDummyData) {
+      setLocations((prev) =>
+        prev.map((loc) =>
+          loc._id === editLocation._id
+            ? {
+                ...loc,
+                name: updatedName,
+                fullAddress: updatedFullAddress,
+                latitude: updatedLatitude,
+                longitude: updatedLongitude,
+              }
+            : loc
+        )
+      );
+      setIsEditModalOpen(false);
+      alert("✅ Location updated successfully (Demo Mode)!");
+      return;
+    }
+
     if (!clientId) {
       alert("Client ID not found. Please login again.");
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/location/updatelocation/${editLocation._id}/${clientId}`, {
+      const response = await fetch(`${API_BASE_URL}/location/updatelocation/${editLocation._id}/${clientId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -378,30 +475,28 @@ const LocationListPage = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to update location");
 
-      // Update list locally
       setLocations((prev) =>
         prev.map((loc) =>
           loc._id === editLocation._id
             ? {
-              ...loc,
-              name: updatedName,
-              fullAddress: updatedFullAddress,
-              latitude: parseFloat(updatedLatitude),
-              longitude: parseFloat(updatedLongitude),
-            }
+                ...loc,
+                name: updatedName,
+                fullAddress: updatedFullAddress,
+                latitude: parseFloat(updatedLatitude),
+                longitude: parseFloat(updatedLongitude),
+              }
             : loc
         )
       );
 
       setIsEditModalOpen(false);
-      fetchLocations(); // Refresh to update filters
+      fetchLocations();
       alert("✅ Location updated successfully!");
     } catch (error) {
       alert("❌ " + error.message);
     }
   };
 
-  // Client Info Banner Component
   const ClientInfoBanner = () => (
     <div className="p-3 mb-3 text-sm text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
       <div className="flex items-center justify-between">
@@ -421,13 +516,22 @@ const LocationListPage = () => {
     </div>
   );
 
-  // Check if clientId is missing
-  if (!clientId && !loading) {
+  // Demo Mode Banner
+  const DemoModeBanner = () => (
+    <div className="mb-3 p-2 text-xs text-yellow-700 bg-yellow-50 border border-yellow-300 rounded-lg">
+      <span className="font-medium">⚠️ Demo Mode:</span> Showing sample location data. API connection may be unavailable.
+    </div>
+  );
+
+  if (loading) {
     return (
       <div className="min-h-screen p-2 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="mx-auto max-w-9xl">
           <div className="p-8 text-center bg-white rounded-lg shadow-md">
-            <p className="text-lg text-red-600">Client ID not found. Please login again.</p>
+            <div className="flex items-center justify-center">
+              <div className="w-8 h-8 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+              <span className="ml-2 text-gray-600">Loading locations...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -438,10 +542,13 @@ const LocationListPage = () => {
     <div className="min-h-screen p-2 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="mx-auto max-w-9xl">
         
-        {/* Client Info Banner */}
-        {clientId && <ClientInfoBanner />}
+        {/* Demo Mode Banner */}
+        {isUsingDummyData && <DemoModeBanner />}
         
-        {/* Filters - LIKE ABSENTTODAY.JS */}
+        {/* Client Info Banner */}
+        {clientId && !isUsingDummyData && <ClientInfoBanner />}
+        
+        {/* Filters */}
         <div className="p-3 mb-3 bg-white rounded-lg shadow-md">
           <div className="flex flex-wrap items-center gap-2">
             
@@ -470,7 +577,6 @@ const LocationListPage = () => {
                 <FaBuilding className="text-xs" /> City {filterCity && `: ${filterCity}`}
               </button>
               
-              {/* City Filter Dropdown */}
               {showCityFilter && (
                 <div className="absolute z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
                   <div 
@@ -513,7 +619,6 @@ const LocationListPage = () => {
                 <FaMapMarkerAlt className="text-xs" /> State {filterState && `: ${filterState}`}
               </button>
               
-              {/* State Filter Dropdown */}
               {showStateFilter && (
                 <div className="absolute z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
                   <div 
@@ -578,9 +683,8 @@ const LocationListPage = () => {
           </div>
         </div>
 
-        {/* Loading / Error */}
-        {loading && <div className="py-10 text-center text-gray-500">Loading...</div>}
-        {errorMessage && (
+        {/* Error Message */}
+        {errorMessage && !isUsingDummyData && (
           <div className="p-4 mb-4 text-red-700 bg-red-100 border border-red-200 rounded">
             ❌ {errorMessage}
           </div>
@@ -590,7 +694,7 @@ const LocationListPage = () => {
         {!loading && filteredLocations.length === 0 && (
           <div className="p-8 text-center bg-white rounded-lg shadow-md">
             <p className="text-lg text-gray-500">
-              {clientId ? "No locations found for your client." : "Please login to view locations."}
+              {isUsingDummyData ? "No dummy locations available." : "No locations found for your client."}
             </p>
             <p className="mt-2 text-sm text-gray-400">
               {(searchTerm || filterCity || filterState || filterPinCode) && "Try clearing filters"}
@@ -619,7 +723,6 @@ const LocationListPage = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {currentItems.map((loc, index) => {
-                    // Extract city, state, pin code from address
                     const addressParts = loc.fullAddress.split(',');
                     const city = addressParts.length > 1 ? addressParts[addressParts.length - 2]?.trim() : '-';
                     const state = addressParts.length > 0 ? addressParts[addressParts.length - 1]?.trim() : '-';
@@ -693,7 +796,6 @@ const LocationListPage = () => {
             {/* Pagination */}
             {filteredLocations.length > 0 && (
               <div className="flex flex-col items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 sm:flex-row">
-                {/* Show entries dropdown */}
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium text-gray-700">
@@ -720,7 +822,6 @@ const LocationListPage = () => {
                   </div>
                 </div>
 
-                {/* Pagination buttons */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handlePrevPage}
@@ -774,7 +875,6 @@ const LocationListPage = () => {
             <div className="w-full max-w-md p-6 bg-white border border-gray-200 shadow-2xl rounded-xl">
               <h3 className="mb-4 text-lg font-semibold text-blue-800">Edit Location</h3>
               <form onSubmit={handleUpdate}>
-                {/* Location Name */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700">Location Name *</label>
                   <input
@@ -786,7 +886,6 @@ const LocationListPage = () => {
                   />
                 </div>
 
-                {/* Full Address */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700">Full Address *</label>
                   <textarea
@@ -798,7 +897,6 @@ const LocationListPage = () => {
                   ></textarea>
                 </div>
 
-                {/* Latitude */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700">Latitude *</label>
                   <input
@@ -810,7 +908,6 @@ const LocationListPage = () => {
                   />
                 </div>
 
-                {/* Longitude */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700">Longitude *</label>
                   <input
@@ -822,7 +919,6 @@ const LocationListPage = () => {
                   />
                 </div>
 
-                {/* Buttons */}
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
