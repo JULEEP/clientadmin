@@ -21,7 +21,7 @@ import AttendanceForm from "./Pages/AttendanceForm.js";
 import AttendanceList from "./Pages/AttendanceList.js";
 import DiagnosticList from "./Pages/Awardlist.js";
 import BackupReset from "./Pages/BackupReset.js";
-import BookingList from "./Pages/BookingList.js";
+// import BookingList from "./Pages/BookingList.js";
 import BulkFunFactUploader from "./Pages/BulkFunFactUploader.js";
 import BulkQuizUploader from "./Pages/BulkQuizUploader.js";
 import CancelledBookingList from "./Pages/CancelledBookingList .js";
@@ -107,70 +107,73 @@ import VendorList from "./Pages/VendorList.js";
 import VendorDetail from "./Pages/VendorProfile.js";
 import WeeklyHoliday from "./Pages/WeeklyHoliday.js";
 // import LandingPage from "./Pages/LandingPage.js";
+import Spaces from "./Components/Spaces.jsx";
 import TimelyNavbar from "./Components/TimelyNavbar.js";
 import EmployeeLayout from "./Layout/EmployeeLayout.jsx";
 import AboutPage from "./Pages/AboutPage.js";
+import AddCabin from "./Pages/AddCabin.js";
+import AddPatient from "./Pages/AddPatient.js";
 import AdminEmployeeLocations from "./Pages/AdminEmployeeLocations.js";
+import AllBookings from "./Pages/AllBookings.js";
+import AllExpensives from "./Pages/AllExpensives.js";
+import AllJobs from "./Pages/AllJobs.js";
+import AllMedicalCertificate from "./Pages/AllMedicalCertificate.js";
+import AllMedicalCertificateForAdmin from "./Pages/AllMedicalCertificateForAdmin.js";
+import AppliedJobs from "./Pages/AppliedJobs.js";
+import AssessmentManager from "./Pages/AssessmentManager.js";
 import AssignLocation from "./Pages/AssignLocation.js";
 import AttendanceSummary from "./Pages/AttendanceSummary.js";
+import BmiDashboard from "./Pages/BmiDashboard.js";
+import BookingList from "./Pages/BookingList.js";
+import CampDashboard from "./Pages/CampDashboard.js";
+import CandidateDocuments from "./Pages/CandidateDocuments.js";
+import CandidatePersonalDocuments from "./Pages/CandidatePersonalDocuments.js";
+import ClientApplications from "./Pages/ClientApplications.js";
+import ClientDoctorDashboard from "./Pages/ClientDoctorDashboard.js";
+import ClientJoinUs from "./Pages/ClientJoinUs.js";
+import ClientOurVolunteers from "./Pages/ClientOurVolunteers.js";
 import ContactPage from "./Pages/ContactPage.js";
+import CoworkingClientBookings from "./Pages/CoworkingClientBookings.js";
+import CoworkingClientDashboard from "./Pages/CoworkingClientDashboard.js";
+import Documents from "./Pages/Documents.js";
+import EmployeeJourney from "./Pages/EmployeeJourney.js";
 import EmployeeLocation from "./Pages/EmployeeLocation.js";
+import EmployeeResignation from "./Pages/EmployeeResignation.js";
 import EmployeeSalary from "./Pages/EmployeeSalary.js";
+import HolidaysCalendar from "./Pages/HolidaysCalendar.js";
 import HomePage from "./Pages/HomePage.js";
+import Interview from "./Pages/Interview.js";
+import JobApplicants from "./Pages/JobApplicants.js";
+import JobDetails from "./Pages/JobDetails.js";
+import JobPositionsStatus from "./Pages/JobPositionsStatus.js";
+import JobPost from "./Pages/JobPost.js";
 import LeavesReport from "./Pages/LeavesReport.js";
+import Letters from "./Pages/Letters.js";
 import AddLocationPage from "./Pages/Location.js";
 import LocationListPage from "./Pages/LocationListPage.js";
+import MyCabins from "./Pages/MyCabins.js";
 import MyShift from "./Pages/MyShift.js";
+import NewAssessment from "./Pages/NewAssessment.js";
+import PatientDetails from "./Pages/PatientDetails.js";
 import PayRoll from "./Pages/PayRoll.js";
+import { Permissions } from "./Pages/Permissions.js";
+import PersonalDocuments from "./Pages/PersonalDocuments.js";
+import PostNewJob from "./Pages/PostNewJob.js";
+import RecruitmentDashboard from "./Pages/RecruitmentDashboard.js";
+import RegisterPage from "./Pages/Register.js";
+import Regularization from "./Pages/Regularization.js";
+import Score from "./Pages/Score.js";
+import SendOffer from "./Pages/SendOffer.js";
 import ServicesPage from "./Pages/ServicesPage.js";
 import ShiftList from "./Pages/ShiftList.js";
 import ShiftManagement from "./Pages/ShiftManagement.js";
 import SuperAdminMedicalMonitor from "./Pages/SuperAdminMedicalMonitor.js";
 import TimelyFooter from "./Pages/TimelyFooter.js";
-import WhoWeServePage from "./Pages/WhoWeServePage.js";
-import CampDashboard from "./Pages/CampDashboard.js";
-import AddPatient from "./Pages/AddPatient.js";
-import BmiDashboard from "./Pages/BmiDashboard.js";
-import PatientDetails from "./Pages/PatientDetails.js";
-import AddCabin from "./Pages/AddCabin.js";
-import MyCabins from "./Pages/MyCabins.js";
-import UserActivity from "./Pages/UserActivity.js";
 import UserAccessManagement from "./Pages/UserAccessManagement.js";
-import JobPost from "./Pages/JobPost.js";
-import Score from "./Pages/Score.js";
-import SendOffer from "./Pages/SendOffer.js";
-import JobApplicants from "./Pages/JobApplicants.js";
-import AssessmentManager from "./Pages/AssessmentManager.js";
-import Documents from "./Pages/Documents.js";
-import EmployeeResignation from "./Pages/EmployeeResignation.js";
-import RecruitmentDashboard from "./Pages/RecruitmentDashboard.js";
-import AllJobs from "./Pages/AllJobs.js";
-import AppliedJobs from "./Pages/AppliedJobs.js";
-import Interview from "./Pages/Interview.js";
-import Letters from "./Pages/Letters.js";
-import CandidateDocuments from "./Pages/CandidateDocuments.js";
-import CandidatePersonalDocuments from "./Pages/CandidatePersonalDocuments.js";
-import EmployeeJourney from "./Pages/EmployeeJourney.js";
-import AllExpensives from "./Pages/AllExpensives.js";
-import AllBookings from "./Pages/AllBookings.js";
-import { Permissions } from "./Pages/Permissions.js";
-import JobDetails from "./Pages/JobDetails.js";
-import PersonalDocuments from "./Pages/PersonalDocuments.js";
-import CoworkingClientDashboard from "./Pages/CoworkingClientDashboard.js";
-import CoworkingClientBookings from "./Pages/CoworkingClientBookings.js";
-import ClientDoctorDashboard from "./Pages/ClientDoctorDashboard.js";
-import ClientOurVolunteers from "./Pages/ClientOurVolunteers.js";
-import ClientJoinUs from "./Pages/ClientJoinUs.js";
-import ClientApplications from "./Pages/ClientApplications.js";
-import PostNewJob from "./Pages/PostNewJob.js";
-import JobPositionsStatus from "./Pages/JobPositionsStatus.js";
-import NewAssessment from "./Pages/NewAssessment.js";
-import AllMedicalCertificate from "./Pages/AllMedicalCertificate.js";
-import RegisterPage from "./Pages/Register.js";
-import Regularization from "./Pages/Regularization.js";
-import AllMedicalCertificateForAdmin from "./Pages/AllMedicalCertificateForAdmin.js";
-import HolidaysCalendar from "./Pages/HolidaysCalendar.js";
-
+import UserActivity from "./Pages/UserActivity.js";
+import WhoWeServePage from "./Pages/WhoWeServePage.js";
+// import CoworkingClientDashboard from './Pages/CoworkingClientDashboard.jsx';
+// import RecruitmentDashboard from './Pages/RecruitmentDashboard.jsx';
 
 // import EmpManagment from "./Pages/EmpManagment.js";
 function App() {
@@ -200,6 +203,13 @@ function App() {
       <Route path="/whoweserve" element={<WhoWeServePage />}></Route>
       <Route path="/contact" element={<ContactPage />}></Route>
       <Route path="/mysalary" element={<EmployeeLayout><EmployeeSalary /></EmployeeLayout>} />
+      <Route path="/coworking-dashboard" element={<CoworkingClientDashboard />} />
+      <Route path="/all-bookings" element={<CoworkingClientBookings />} />
+      <Route path="/mycabins" element={<MyCabins />} />
+      <Route path="/my-bookings" element={<BookingList />} />
+      <Route path="/spaces" element={<Spaces />} />
+      <Route path="/add-cabin" element={<AddCabin />} />
+      <Route path="/recruitment-dashboard" element={<AdminLayout><RecruitmentDashboard /></AdminLayout>} />
       {/* All other routes inside AdminLayout */}
       <Route
         path="/*"
@@ -336,8 +346,8 @@ function App() {
               <Route path="/add-patient" element={<AddPatient />} />
               <Route path="/bmi-dashboard" element={<BmiDashboard />} />
                <Route path="/patient/:id" element={<PatientDetails />} />
-              <Route path="/add-cabin" element={<AddCabin />} />
-               <Route path="/mycabins" element={<MyCabins />} />
+              {/* <Route path="/add-cabin" element={<AddCabin />} /> */}
+               {/* <Route path="/mycabins" element={<MyCabins />} /> */}
               <Route path="/employee-resignation" element={<EmployeeResignation />} />
               <Route path="/recruitment-dashboard" element={<RecruitmentDashboard />} />
               <Route path="/all-jobs" element={<AllJobs />} />
@@ -351,8 +361,8 @@ function App() {
               <Route path="/allbookings" element={<AllBookings />}></Route>
               <Route path="/permissions" element={<Permissions />}></Route>
               <Route path="/personal-documents" element={<PersonalDocuments />} />
-               <Route path="/coworking-dashboard" element={<CoworkingClientDashboard />} />
-              <Route path="/all-bookings" element={<CoworkingClientBookings />} />
+               {/* <Route path="/coworking-dashboard" element={<CoworkingClientDashboard />} /> */}
+              {/* <Route path="/all-bookings" element={<CoworkingClientBookings />} /> */}
               <Route path="/doctor" element={<ClientDoctorDashboard />} />
               <Route path="/our-volunteers" element={<ClientOurVolunteers />} />
               <Route path="/join-us" element={<ClientJoinUs />} />
